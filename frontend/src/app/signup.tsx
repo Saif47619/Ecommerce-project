@@ -64,28 +64,28 @@ export default function SignupScreen() {
         style={{
           borderWidth: 1,
           padding: 12,
-          marginBottom: 10,
+          marginBottom: 15,
           borderRadius: 8,
         }}
       />
 
       <TextInput
-        placeholder="Email"
+        placeholder="Enter Email"
         value={email}
         onChangeText={setEmail}
         style={{
           borderWidth: 1,
           padding: 12,
-          marginBottom: 10,
+          marginBottom: 15,
           borderRadius: 8,
         }}
       />
 
       <TextInput
-        placeholder="Password"
-        secureTextEntry
+        placeholder="Enter Password"
         value={password}
         onChangeText={setPassword}
+        secureTextEntry
         style={{
           borderWidth: 1,
           padding: 12,
