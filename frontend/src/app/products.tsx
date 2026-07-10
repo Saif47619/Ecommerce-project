@@ -4,10 +4,12 @@ import {
   Text,
   FlatList,
   StyleSheet,
+  TouchableOpacity,
 } from "react-native";
+import { router } from "expo-router";
 
 export default function ProductsScreen() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
     fetchProducts();
@@ -25,7 +27,7 @@ export default function ProductsScreen() {
 
       setProducts(data);
     } catch (error) {
-      console.log(error);
+      console.log("ERROR:", error);
     }
   };
 
@@ -37,11 +39,16 @@ export default function ProductsScreen() {
 
       <FlatList
         data={products}
-        keyExtractor={(item: any) =>
+        keyExtractor={(item) =>
           item.id.toString()
         }
-        renderItem={({ item }: any) => (
-          <View style={styles.card}>
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() =>
+              router.push(`/product/${item.id}`)
+            }
+          >
             <Text style={styles.title}>
               {item.title}
             </Text>
@@ -51,9 +58,9 @@ export default function ProductsScreen() {
             </Text>
 
             <Text style={styles.price}>
-              ${item.price}
+              Rs. {item.price}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>
@@ -87,5 +94,6 @@ const styles = StyleSheet.create({
   price: {
     marginTop: 8,
     fontWeight: "bold",
+    color: "green",
   },
 });
