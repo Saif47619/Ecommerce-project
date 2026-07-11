@@ -6,10 +6,21 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
+
+type Product = {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  image_url: string;
+  seller_id: number;
+};
 
 export default function ProductsScreen() {
-  const [products, setProducts] = useState<any[]>([]);
+  const router = useRouter();
+
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     fetchProducts();
@@ -39,9 +50,7 @@ export default function ProductsScreen() {
 
       <FlatList
         data={products}
-        keyExtractor={(item) =>
-          item.id.toString()
-        }
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
