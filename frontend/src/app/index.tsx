@@ -1,32 +1,75 @@
-import { View, Text, Button } from "react-native";
-import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { View, Text, ScrollView } from "react-native";
 
 export default function HomeScreen() {
+  const [products, setProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("http://192.168.100.11:8000/products")
+      .then((response) => response.json())
+      .then((data) => {
+        setProducts(data);
+      })
+      .catch((error) => {
+        console.log("ERROR:", error);
+      });
+  }, []);
+
   return (
-    <View
+    <ScrollView
       style={{
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        gap: 10,
+        padding: 20,
+        marginTop: 50,
+        backgroundColor: "#f5f5f5",
       }}
     >
-      <Text style={{ fontSize: 24 }}>Home Screen</Text>
+      <Text
+        style={{
+          fontSize: 30,
+          fontWeight: "bold",
+          marginBottom: 20,
+          textAlign: "center",
+        }}
+      >
+        Products
+      </Text>
 
-      <Button
-        title="Go to Login"
-        onPress={() => router.push("/login")}
-      />
+      {products.map((item) => (
+        <View
+          key={item.id}
+          style={{
+            backgroundColor: "white",
+            borderRadius: 12,
+            padding: 15,
+            marginBottom: 15,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "bold",
+              marginBottom: 8,
+            }}
+          >
+            {item.name}
+          </Text>
 
-      <Button
-        title="Go to Signup"
-        onPress={() => router.push("/signup")}
-      />
-
-      <Button
-        title="Go to Profile"
-        onPress={() => router.push("/profile")}
-      />
-    </View>
+          <Text
+            style={{
+              fontSize: 18,
+              color: "green",
+              fontWeight: "600",
+            }}
+          >
+            ${item.price}
+          </Text>
+        </View>
+      ))}
+    </ScrollView>
   );
 }

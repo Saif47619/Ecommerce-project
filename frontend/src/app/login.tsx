@@ -3,47 +3,42 @@ import {
   View,
   Text,
   TextInput,
+  Button,
+  Alert,
   TouchableOpacity,
 } from "react-native";
-import { router } from "expo-router";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
-    try {
-      const response = await fetch(
-        "http://192.168.100.11:8000/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
+  const handleLogin = () => {
+    // Empty fields check
+    if (!email || !password) {
+      Alert.alert(
+        "Error",
+        "Email and Password are required"
       );
-
-      const data = await response.json();
-
-      console.log("LOGIN RESPONSE:", data);
-
-      if (data.message === "Login successful") {
-        window.alert(
-          `Login successful\nUser ID: ${data.user_id}`
-        );
-
-        router.push("/products");
-      } else {
-        window.alert("Invalid email or password");
-      }
-    } catch (error) {
-      console.log("ERROR:", error);
-      window.alert("Could not connect to backend");
+      return;
     }
+
+    // Password length check
+    if (password.length < 6) {
+      Alert.alert(
+        "Error",
+        "Password must be at least 6 characters"
+      );
+      return;
+    }
+
+    // Success
+    Alert.alert(
+      "Success",
+      "Login form submitted"
+    );
+
+    console.log("Email:", email);
+    console.log("Password:", password);
   };
 
   return (
@@ -66,23 +61,22 @@ export default function LoginScreen() {
       </Text>
 
       <TextInput
-        placeholder="Email"
+        placeholder="Enter Email"
         value={email}
         onChangeText={setEmail}
-        autoCapitalize="none"
         style={{
           borderWidth: 1,
           padding: 12,
-          marginBottom: 10,
+          marginBottom: 15,
           borderRadius: 8,
         }}
       />
 
       <TextInput
-        placeholder="Password"
-        secureTextEntry
+        placeholder="Enter Password"
         value={password}
         onChangeText={setPassword}
+        secureTextEntry
         style={{
           borderWidth: 1,
           padding: 12,
