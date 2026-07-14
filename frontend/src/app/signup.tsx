@@ -15,7 +15,7 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     try {
       const response = await fetch(
-        "http://192.168.100.11:8000/signup",
+        "http://127.0.0.1:8000/signup",
         {
           method: "POST",
           headers: {

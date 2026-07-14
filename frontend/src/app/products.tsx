@@ -29,7 +29,7 @@ export default function ProductsScreen() {
   const fetchProducts = async () => {
     try {
       const response = await fetch(
-        "http://192.168.100.11:8000/products"
+        "http://127.0.0.1:8000/products"
       );
 
       const data = await response.json();
