@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView } from "react-native";
+import { API_URL } from "../lib/api";
 
 export default function HomeScreen() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch("http://192.168.100.11:8000/products")
+    fetch(`${API_URL}/items`)
       .then((response) => response.json())
       .then((data) => {
-        setProducts(data);
+        setItems(data);
       })
       .catch((error) => {
         console.log("ERROR:", error);
@@ -32,10 +33,10 @@ export default function HomeScreen() {
           textAlign: "center",
         }}
       >
-        Products
+        Items
       </Text>
 
-      {products.map((item) => (
+      {items.map((item) => (
         <View
           key={item.id}
           style={{
@@ -56,7 +57,7 @@ export default function HomeScreen() {
               marginBottom: 8,
             }}
           >
-            {item.name}
+            {item.title}
           </Text>
 
           <Text
