@@ -1,3 +1,8 @@
+import os
+import shutil
+import uuid
+from fastapi import File, UploadFile
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -14,6 +19,9 @@ from schemas import (
 from auth import hash_password, verify_password
 
 app = FastAPI()
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
@@ -200,3 +208,25 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
     db.delete(item)
     db.commit()
     return {"message": "Item deleted successfully"}
+
+@app.post("/items/{item_id}/upload-image")
+def upload_item_image(
+    item_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    file_extension = file.filename.split(".")[-1]
+    unique_filename = f"{uuid.uuid4()}.{file_extension}"
+    file_path = os.path.join("uploads", unique_filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    item.image_url = f"/uploads/{unique_filename}"
+    db.commit()
+    db.refresh(item)
+    return item
