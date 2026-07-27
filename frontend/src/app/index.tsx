@@ -35,6 +35,13 @@ export default function HomeScreen() {
             <Text style={{ alignSelf: "center", marginRight: 10 }}>
               Hi, {user.name} ({user.role})
             </Text>
+            {user.role === "seller" && (
+              <Link href="/create-store" asChild>
+                <TouchableOpacity style={{ backgroundColor: "blue", padding: 10, borderRadius: 8, marginRight: 10 }}>
+                  <Text style={{ color: "white", fontWeight: "bold" }}>Create Store</Text>
+                </TouchableOpacity>
+              </Link>
+            )}
             <TouchableOpacity
               onPress={logout}
               style={{ backgroundColor: "#999", padding: 10, borderRadius: 8 }}
