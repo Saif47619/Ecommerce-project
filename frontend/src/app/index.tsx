@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { Link } from "expo-router";
 import { API_URL } from "../lib/api";
+import { useAuth } from "../context/auth-context";
 
 export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     fetch(`${API_URL}/items`)
@@ -25,6 +28,36 @@ export default function HomeScreen() {
         backgroundColor: "#f5f5f5",
       }}
     >
+      {/* Auth buttons */}
+      <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 20, gap: 10 }}>
+        {user ? (
+          <>
+            <Text style={{ alignSelf: "center", marginRight: 10 }}>
+              Hi, {user.name} ({user.role})
+            </Text>
+            <TouchableOpacity
+              onPress={logout}
+              style={{ backgroundColor: "#999", padding: 10, borderRadius: 8 }}
+            >
+              <Text style={{ color: "white" }}>Logout</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Link href="/login" asChild>
+              <TouchableOpacity style={{ backgroundColor: "green", padding: 10, borderRadius: 8, paddingHorizontal: 20 }}>
+                <Text style={{ color: "white", fontWeight: "bold" }}>Login</Text>
+              </TouchableOpacity>
+            </Link>
+            <Link href="/signup" asChild>
+              <TouchableOpacity style={{ backgroundColor: "blue", padding: 10, borderRadius: 8, paddingHorizontal: 20 }}>
+                <Text style={{ color: "white", fontWeight: "bold" }}>Sign Up</Text>
+              </TouchableOpacity>
+            </Link>
+          </>
+        )}
+      </View>
+
       <Text
         style={{
           fontSize: 30,

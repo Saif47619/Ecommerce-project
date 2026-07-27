@@ -1,3 +1,4 @@
+import { API_URL } from "../lib/api";
 import { useState } from "react";
 import {
   View,
@@ -15,7 +16,7 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     try {
       const response = await fetch(
-        "http://192.168.100.11:8000/signup",
+          `${API_URL}/signup`,
         {
           method: "POST",
           headers: {
