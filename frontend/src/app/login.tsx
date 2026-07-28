@@ -1,14 +1,9 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Alert,
-  TouchableOpacity,
-} from "react-native";
-import { router } from "expo-router";
+import { View, Text, TextInput, Alert, TouchableOpacity } from "react-native";
+import { router, Link } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
+import { colors, spacing, radius, type } from "../constants/reloop-theme";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -17,7 +12,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Email and Password are required");
+      Alert.alert("Error", "Email and password are required");
       return;
     }
 
@@ -35,13 +30,7 @@ export default function LoginScreen() {
         return;
       }
 
-      login({
-        id: data.user_id,
-        name: data.name,
-        role: data.role,
-      });
-
-      Alert.alert("Success", `Welcome, ${data.name}`);
+      login({ id: data.user_id, name: data.name, role: data.role });
       router.replace("/");
     } catch (error) {
       Alert.alert("Error", "Could not connect to backend");
@@ -49,35 +38,66 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={{ flex: 1, padding: 20, justifyContent: "center" }}>
-      <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20, textAlign: "center" }}>
-        Login
+    <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.lg, justifyContent: "center" }}>
+      <Text style={{ ...type.brand, color: colors.ink, textAlign: "center", marginBottom: spacing.xs }}>
+        Reloop
+      </Text>
+      <Text style={{ ...type.body, color: colors.inkMuted, textAlign: "center", marginBottom: spacing.xl }}>
+        Log in to your account
       </Text>
 
+      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Email</Text>
       <TextInput
-        placeholder="Enter Email"
+        placeholder="you@example.com"
+        placeholderTextColor={colors.inkMuted}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
-        style={{ borderWidth: 1, padding: 12, marginBottom: 15, borderRadius: 8 }}
+        style={{
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: radius.sm,
+          padding: 14,
+          marginBottom: spacing.md,
+          color: colors.ink,
+        }}
       />
 
+      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Password</Text>
       <TextInput
-        placeholder="Enter Password"
+        placeholder="••••••••"
+        placeholderTextColor={colors.inkMuted}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        style={{ borderWidth: 1, padding: 12, marginBottom: 20, borderRadius: 8 }}
+        style={{
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: radius.sm,
+          padding: 14,
+          marginBottom: spacing.lg,
+          color: colors.ink,
+        }}
       />
 
       <TouchableOpacity
         onPress={handleLogin}
-        style={{ backgroundColor: "green", padding: 15, borderRadius: 8 }}
+        style={{ backgroundColor: colors.denim, padding: 15, borderRadius: radius.sm }}
       >
-        <Text style={{ color: "white", textAlign: "center", fontWeight: "bold" }}>
-          Login
+        <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+          Log in
         </Text>
       </TouchableOpacity>
+
+      <Link href="/signup" asChild>
+        <TouchableOpacity style={{ marginTop: spacing.lg }}>
+          <Text style={{ color: colors.denim, textAlign: "center", fontWeight: "600" }}>
+            Don't have an account? Sign up
+          </Text>
+        </TouchableOpacity>
+      </Link>
     </View>
   );
 }
