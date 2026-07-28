@@ -50,6 +50,11 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </Link>
               )}
+              <Link href="/profile" asChild>
+                <TouchableOpacity>
+                  <Text style={{ color: colors.denim, fontWeight: "600" }}>Profile</Text>
+                </TouchableOpacity>
+              </Link>
               <TouchableOpacity onPress={logout}>
                 <Text style={{ color: colors.inkMuted, fontWeight: "600" }}>Logout</Text>
               </TouchableOpacity>
@@ -57,7 +62,15 @@ export default function HomeScreen() {
           ) : (
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <Link href="/login" asChild>
-                <TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.denim,
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: radius.sm,
+                  }}
+                >
                   <Text style={{ color: colors.denim, fontWeight: "700" }}>Log in</Text>
                 </TouchableOpacity>
               </Link>
@@ -85,7 +98,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Feed */}
-      <ScrollView contentContainerStyle={{ padding: spacing.md }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.md, maxWidth: 900, width: "100%", alignSelf: "center" }}>
         <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
           Just listed
         </Text>
