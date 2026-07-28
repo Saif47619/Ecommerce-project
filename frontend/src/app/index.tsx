@@ -35,20 +35,36 @@ export default function HomeScreen() {
           {user ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               {user.role === "seller" && (
-                <Link href="/create-store" asChild>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: colors.denim,
-                      paddingVertical: 8,
-                      paddingHorizontal: 14,
-                      borderRadius: radius.sm,
-                    }}
-                  >
-                    <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
-                      + Store
-                    </Text>
-                  </TouchableOpacity>
-                </Link>
+                <>
+                  <Link href="/create-store" asChild>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: colors.denim,
+                        paddingVertical: 8,
+                        paddingHorizontal: 14,
+                        borderRadius: radius.sm,
+                      }}
+                    >
+                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
+                        + Store
+                      </Text>
+                    </TouchableOpacity>
+                  </Link>
+                  <Link href="/create-item" asChild>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: colors.clay,
+                        paddingVertical: 8,
+                        paddingHorizontal: 14,
+                        borderRadius: radius.sm,
+                      }}
+                    >
+                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
+                        + Item
+                      </Text>
+                    </TouchableOpacity>
+                  </Link>
+                </>
               )}
               <Link href="/profile" asChild>
                 <TouchableOpacity>
