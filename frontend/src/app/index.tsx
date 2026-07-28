@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
+import { colors, spacing, radius, type } from "../constants/reloop-theme";
 
 export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
@@ -11,106 +12,170 @@ export default function HomeScreen() {
   useEffect(() => {
     fetch(`${API_URL}/items`)
       .then((response) => response.json())
-      .then((data) => {
-        setItems(data);
-      })
-      .catch((error) => {
-        console.log("ERROR:", error);
-      });
+      .then((data) => setItems(data))
+      .catch((error) => console.log("ERROR:", error));
   }, []);
 
   return (
-    <ScrollView
-      style={{
-        flex: 1,
-        padding: 20,
-        marginTop: 50,
-        backgroundColor: "#f5f5f5",
-      }}
-    >
-      {/* Auth buttons */}
-      <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 20, gap: 10 }}>
-        {user ? (
-          <>
-            <Text style={{ alignSelf: "center", marginRight: 10 }}>
-              Hi, {user.name} ({user.role})
-            </Text>
-            {user.role === "seller" && (
-              <Link href="/create-store" asChild>
-                <TouchableOpacity style={{ backgroundColor: "blue", padding: 10, borderRadius: 8, marginRight: 10 }}>
-                  <Text style={{ color: "white", fontWeight: "bold" }}>Create Store</Text>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Header */}
+      <View
+        style={{
+          paddingTop: 60,
+          paddingHorizontal: spacing.md,
+          paddingBottom: spacing.md,
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+      >
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={{ ...type.brand, color: colors.ink }}>Reloop</Text>
+
+          {user ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              {user.role === "seller" && (
+                <Link href="/create-store" asChild>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: colors.denim,
+                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      borderRadius: radius.sm,
+                    }}
+                  >
+                    <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
+                      + Store
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+              )}
+              <TouchableOpacity onPress={logout}>
+                <Text style={{ color: colors.inkMuted, fontWeight: "600" }}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <Link href="/login" asChild>
+                <TouchableOpacity>
+                  <Text style={{ color: colors.denim, fontWeight: "700" }}>Log in</Text>
                 </TouchableOpacity>
               </Link>
-            )}
-            <TouchableOpacity
-              onPress={logout}
-              style={{ backgroundColor: "#999", padding: 10, borderRadius: 8 }}
-            >
-              <Text style={{ color: "white" }}>Logout</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <Link href="/login" asChild>
-              <TouchableOpacity style={{ backgroundColor: "green", padding: 10, borderRadius: 8, paddingHorizontal: 20 }}>
-                <Text style={{ color: "white", fontWeight: "bold" }}>Login</Text>
-              </TouchableOpacity>
-            </Link>
-            <Link href="/signup" asChild>
-              <TouchableOpacity style={{ backgroundColor: "blue", padding: 10, borderRadius: 8, paddingHorizontal: 20 }}>
-                <Text style={{ color: "white", fontWeight: "bold" }}>Sign Up</Text>
-              </TouchableOpacity>
-            </Link>
-          </>
+              <Link href="/signup" asChild>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.ink,
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: radius.sm,
+                  }}
+                >
+                  <Text style={{ color: colors.white, fontWeight: "700" }}>Sign up</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          )}
+        </View>
+
+        {user && (
+          <Text style={{ ...type.body, color: colors.inkMuted, marginTop: spacing.xs }}>
+            Welcome back, {user.name}
+          </Text>
         )}
       </View>
 
-      <Text
-        style={{
-          fontSize: 30,
-          fontWeight: "bold",
-          marginBottom: 20,
-          textAlign: "center",
-        }}
-      >
-        Items
-      </Text>
+      {/* Feed */}
+      <ScrollView contentContainerStyle={{ padding: spacing.md }}>
+        <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
+          Just listed
+        </Text>
 
-      {items.map((item) => (
-        <View
-          key={item.id}
-          style={{
-            backgroundColor: "white",
-            borderRadius: 12,
-            padding: 15,
-            marginBottom: 15,
-            shadowColor: "#000",
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <Text
+        {items.length === 0 && (
+          <View
             style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              marginBottom: 8,
+              paddingVertical: spacing.xl,
+              alignItems: "center",
             }}
           >
-            {item.title}
-          </Text>
+            <Text style={{ ...type.body, color: colors.inkMuted }}>
+              No items yet — check back soon.
+            </Text>
+          </View>
+        )}
 
-          <Text
-            style={{
-              fontSize: 18,
-              color: "green",
-              fontWeight: "600",
-            }}
-          >
-            ${item.price}
-          </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          {items.map((item) => (
+            <View
+              key={item.id}
+              style={{
+                width: "47.5%",
+                backgroundColor: colors.surface,
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: colors.border,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  height: 140,
+                  backgroundColor: colors.border,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
+              </View>
+
+              <View style={{ padding: spacing.sm }}>
+                <Text style={{ ...type.h2, color: colors.ink }} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                {item.size && (
+                  <Text style={{ ...type.label, color: colors.inkMuted, marginTop: 2 }}>
+                    Size {item.size}
+                  </Text>
+                )}
+
+                {/* Signature: clipped price tag */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: spacing.sm,
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: colors.clay,
+                      paddingVertical: 4,
+                      paddingHorizontal: 10,
+                      borderTopLeftRadius: radius.sm,
+                      borderBottomLeftRadius: radius.sm,
+                    }}
+                  >
+                    <Text style={{ ...type.price, color: colors.white }}>
+                      ${item.price}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderTopWidth: 13,
+                      borderBottomWidth: 13,
+                      borderLeftWidth: 8,
+                      borderTopColor: "transparent",
+                      borderBottomColor: "transparent",
+                      borderLeftColor: colors.clay,
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+          ))}
         </View>
-      ))}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
