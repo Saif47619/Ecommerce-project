@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router, Link } from "expo-router";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../context/auth-context";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
@@ -96,6 +96,15 @@ export default function ItemDetailScreen() {
           </Text>
           <Text style={{ ...type.brand, color: colors.clay }}>${item.price}</Text>
         </View>
+        {item.store && (
+          <Link href={`/store/${item.store.id}` as any} asChild>
+            <TouchableOpacity style={{ marginTop: spacing.xs }}>
+              <Text style={{ color: colors.denim, fontWeight: "600" }}>
+                Visit {item.store.name}
+              </Text>
+            </TouchableOpacity>
+          </Link>
+        )}
 
         {item.size && (
           <Text style={{ ...type.label, color: colors.inkMuted, marginTop: spacing.xs }}>
