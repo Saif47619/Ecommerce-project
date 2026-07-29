@@ -164,7 +164,24 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    return item
+
+    store = db.query(Store).filter(Store.id == item.store_id).first()
+
+    return {
+        "id": item.id,
+        "title": item.title,
+        "description": item.description,
+        "price": item.price,
+        "size": item.size,
+        "image_url": item.image_url,
+        "is_sold": item.is_sold,
+        "store_id": item.store_id,
+        "store": {
+            "id": store.id,
+            "name": store.name,
+            "owner_id": store.owner_id,
+        } if store else None,
+    }
 
 
 @app.put("/items/{item_id}")
@@ -191,6 +208,10 @@ def buy_item(item_id: int, buyer_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Item not found")
     if item.is_sold:
         raise HTTPException(status_code=400, detail="Item already sold")
+
+    store = db.query(Store).filter(Store.id == item.store_id).first()
+    if store and store.owner_id == buyer_id:
+        raise HTTPException(status_code=400, detail="You can't buy your own item")
 
     item.is_sold = True
     item.buyer_id = buyer_id

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { Link } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
+
 
 export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
@@ -35,36 +36,20 @@ export default function HomeScreen() {
           {user ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               {user.role === "seller" && (
-                <>
-                  <Link href="/create-store" asChild>
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: colors.denim,
-                        paddingVertical: 8,
-                        paddingHorizontal: 14,
-                        borderRadius: radius.sm,
-                      }}
-                    >
-                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
-                        + Store
-                      </Text>
-                    </TouchableOpacity>
-                  </Link>
-                  <Link href="/create-item" asChild>
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: colors.clay,
-                        paddingVertical: 8,
-                        paddingHorizontal: 14,
-                        borderRadius: radius.sm,
-                      }}
-                    >
-                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
-                        + Item
-                      </Text>
-                    </TouchableOpacity>
-                  </Link>
-                </>
+                <Link href="/create-store" asChild>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: colors.denim,
+                      paddingVertical: 8,
+                      paddingHorizontal: 14,
+                      borderRadius: radius.sm,
+                    }}
+                  >
+                    <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
+                      + Store
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
               )}
               <Link href="/profile" asChild>
                 <TouchableOpacity>
@@ -134,26 +119,29 @@ export default function HomeScreen() {
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
           {items.map((item) => (
-            <View
-              key={item.id}
-              style={{
-                width: "47.5%",
-                backgroundColor: colors.surface,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: colors.border,
-                overflow: "hidden",
-              }}
-            >
-              <View
+            <Link key={item.id} href={`/item/${item.id}` as any} asChild>
+              <TouchableOpacity
                 style={{
-                  height: 140,
-                  backgroundColor: colors.border,
-                  alignItems: "center",
-                  justifyContent: "center",
+                  width: "47.5%",
+                  backgroundColor: colors.surface,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  overflow: "hidden",
                 }}
               >
-                <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
+              <View style={{ height: 140, backgroundColor: colors.border }}>
+                {item.image_url ? (
+                  <Image
+                    source={{ uri: `${API_URL}${item.image_url}` }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
+                  </View>
+                )}
               </View>
 
               <View style={{ padding: spacing.sm }}>
@@ -201,7 +189,8 @@ export default function HomeScreen() {
                   />
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
+            </Link>
           ))}
         </View>
       </ScrollView>
