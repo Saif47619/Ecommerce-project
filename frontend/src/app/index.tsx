@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput } from "react-native";
 import { Link } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
@@ -8,14 +8,18 @@ import { colors, spacing, radius, type } from "../constants/reloop-theme";
 
 export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    fetch(`${API_URL}/items`)
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+
+    fetch(`${API_URL}/items?${params.toString()}`)
       .then((response) => response.json())
       .then((data) => setItems(data))
       .catch((error) => console.log("ERROR:", error));
-  }, []);
+  }, [search]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -100,8 +104,24 @@ export default function HomeScreen() {
 
       {/* Feed */}
       <ScrollView contentContainerStyle={{ padding: spacing.md, maxWidth: 900, width: "100%", alignSelf: "center" }}>
+        <TextInput
+          placeholder="Search items..."
+          placeholderTextColor={colors.inkMuted}
+          value={search}
+          onChangeText={setSearch}
+          style={{
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.sm,
+            padding: 12,
+            marginBottom: spacing.md,
+            color: colors.ink,
+          }}
+        />
+
         <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
-          Just listed
+          {search ? `Results for "${search}"` : "Just listed"}
         </Text>
 
         {items.length === 0 && (

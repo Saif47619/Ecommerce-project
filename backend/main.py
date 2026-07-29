@@ -149,9 +149,28 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
     return new_item
 
 
+from typing import Optional
+
 @app.get("/items")
-def get_items(db: Session = Depends(get_db)):
-    return db.query(Item).all()
+def get_items(
+    search: Optional[str] = None,
+    size: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    db: Session = Depends(get_db),
+):
+    query = db.query(Item)
+
+    if search:
+        query = query.filter(Item.title.ilike(f"%{search}%"))
+    if size:
+        query = query.filter(Item.size == size)
+    if min_price is not None:
+        query = query.filter(Item.price >= min_price)
+    if max_price is not None:
+        query = query.filter(Item.price <= max_price)
+
+    return query.all()
 
 
 @app.get("/stores/{store_id}/items")
