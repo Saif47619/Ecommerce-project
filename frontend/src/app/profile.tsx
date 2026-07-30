@@ -8,6 +8,7 @@ import { colors, spacing, radius, type } from "../constants/reloop-theme";
 export default function ProfileScreen() {
   const { user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasStore, setHasStore] = useState(false);
 
@@ -16,6 +17,11 @@ export default function ProfileScreen() {
       router.replace("/login");
       return;
     }
+
+    fetch(`${API_URL}/users/${user.id}/purchases`)
+      .then((res) => res.json())
+      .then((data) => setPurchases(data))
+      .catch(() => {});
 
     if (user.role !== "seller") {
       setLoading(false);
@@ -179,6 +185,46 @@ export default function ProfileScreen() {
             </>
           )}
         </>
+      )}
+
+      <Text style={{ ...type.label, color: colors.inkMuted, marginTop: spacing.lg, marginBottom: spacing.sm }}>
+        My Purchases
+      </Text>
+
+      {purchases.length === 0 ? (
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            padding: spacing.md,
+          }}
+        >
+          <Text style={{ ...type.body, color: colors.inkMuted }}>
+            You haven't bought anything yet.
+          </Text>
+        </View>
+      ) : (
+        purchases.map((item) => (
+          <View
+            key={item.id}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.sm,
+              padding: spacing.sm,
+              marginBottom: spacing.xs,
+            }}
+          >
+            <Text style={{ ...type.h2, color: colors.ink }}>{item.title}</Text>
+            <Text style={{ ...type.price, color: colors.clay }}>${item.price}</Text>
+          </View>
+        ))
       )}
     </ScrollView>
   );

@@ -177,6 +177,9 @@ def get_items(
 def get_store_items(store_id: int, db: Session = Depends(get_db)):
     return db.query(Item).filter(Item.store_id == store_id).all()
 
+@app.get("/users/{user_id}/purchases")
+def get_user_purchases(user_id: int, db: Session = Depends(get_db)):
+    return db.query(Item).filter(Item.buyer_id == user_id).all()
 
 @app.get("/items/{item_id}")
 def get_item(item_id: int, db: Session = Depends(get_db)):
