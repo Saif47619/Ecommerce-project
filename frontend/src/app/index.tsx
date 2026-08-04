@@ -126,9 +126,62 @@ export default function HomeScreen() {
           </Text>
         )}
       </View>
-
       {/* Feed */}
       <ScrollView contentContainerStyle={{ padding: spacing.md, maxWidth: 900, width: "100%", alignSelf: "center" }}>
+        {!user && (
+          <View
+            style={{
+              backgroundColor: colors.wine,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+              marginBottom: spacing.lg,
+            }}
+          >
+            <Text style={{ ...type.h1, color: colors.white, marginBottom: spacing.xs }}>
+              Ready to declutter{"\n"}your closet?
+            </Text>
+            <Text style={{ ...type.body, color: "#E8D8DC", marginBottom: spacing.md }}>
+              Give your clothes a second life — and make some money doing it.
+            </Text>
+            <Link href="/signup" asChild>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.white,
+                  paddingVertical: 12,
+                  borderRadius: radius.sm,
+                  marginBottom: spacing.xs,
+                }}
+              >
+                <Text style={{ color: colors.wine, textAlign: "center", fontWeight: "700" }}>
+                  Sell now
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        )}
+
+        {user && user.role === "seller" && (
+          <Link href="/create-item" asChild>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.wine,
+                borderRadius: radius.lg,
+                padding: spacing.md,
+                marginBottom: spacing.lg,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View>
+                <Text style={{ ...type.h2, color: colors.white }}>Got more to sell?</Text>
+                <Text style={{ ...type.body, color: "#E8D8DC" }}>List another piece</Text>
+              </View>
+              <Text style={{ ...type.h1, color: colors.white }}>+</Text>
+            </TouchableOpacity>
+          </Link>
+        )}
+
         <TextInput
           placeholder="Search items..."
           placeholderTextColor={colors.inkMuted}
