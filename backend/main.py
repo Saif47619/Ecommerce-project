@@ -8,16 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from database import engine, SessionLocal, Base
-from models import User, Store, Item
-from schemas import (
-    UserCreate,
-    LoginRequest,
-    StoreCreate,
-    ItemCreate,
-    ItemUpdate,
-    MessageCreate,
-    OfferResponse,
-)
+
 from auth import hash_password, verify_password
 from models import User, Store, Item, Message
 from schemas import (
@@ -27,6 +18,7 @@ from schemas import (
     ItemCreate,
     ItemUpdate,
     MessageCreate,
+    OfferResponse,
 )
 
 app = FastAPI()
@@ -151,6 +143,7 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
         description=item.description,
         price=item.price,
         size=item.size,
+        category=item.category,
         image_url=item.image_url,
         store_id=item.store_id,
     )
@@ -166,6 +159,7 @@ from typing import Optional
 def get_items(
     search: Optional[str] = None,
     size: Optional[str] = None,
+    category: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     db: Session = Depends(get_db),
@@ -176,6 +170,8 @@ def get_items(
         query = query.filter(Item.title.ilike(f"%{search}%"))
     if size:
         query = query.filter(Item.size == size)
+    if category:
+        query = query.filter(Item.category == category)
     if min_price is not None:
         query = query.filter(Item.price >= min_price)
     if max_price is not None:
@@ -227,6 +223,7 @@ def update_item(item_id: int, item: ItemUpdate, db: Session = Depends(get_db)):
     existing_item.description = item.description
     existing_item.price = item.price
     existing_item.size = item.size
+    existing_item.category = item.category
     existing_item.image_url = item.image_url
 
     db.commit()
