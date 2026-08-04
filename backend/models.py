@@ -52,6 +52,7 @@ class Item(Base):
     price = Column(Float, nullable=False)
     size = Column(String)
     category = Column(String, nullable=True)
+    brand = Column(String, nullable=True)
     image_url = Column(String)
     is_sold = Column(Boolean, default=False)
     store_id = Column(Integer, ForeignKey("stores.id"), nullable=False)

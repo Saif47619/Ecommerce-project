@@ -1,6 +1,7 @@
 import os
 import shutil
 import uuid
+from typing import Optional
 from fastapi import File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, HTTPException
@@ -144,6 +145,7 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
         price=item.price,
         size=item.size,
         category=item.category,
+        brand=item.brand,
         image_url=item.image_url,
         store_id=item.store_id,
     )
@@ -153,13 +155,12 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
     return new_item
 
 
-from typing import Optional
-
 @app.get("/items")
 def get_items(
     search: Optional[str] = None,
     size: Optional[str] = None,
     category: Optional[str] = None,
+    brand: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     db: Session = Depends(get_db),
@@ -172,6 +173,8 @@ def get_items(
         query = query.filter(Item.size == size)
     if category:
         query = query.filter(Item.category == category)
+    if brand:
+        query = query.filter(Item.brand.ilike(f"%{brand}%"))
     if min_price is not None:
         query = query.filter(Item.price >= min_price)
     if max_price is not None:
@@ -184,9 +187,11 @@ def get_items(
 def get_store_items(store_id: int, db: Session = Depends(get_db)):
     return db.query(Item).filter(Item.store_id == store_id).all()
 
+
 @app.get("/users/{user_id}/purchases")
 def get_user_purchases(user_id: int, db: Session = Depends(get_db)):
     return db.query(Item).filter(Item.buyer_id == user_id).all()
+
 
 @app.get("/items/{item_id}")
 def get_item(item_id: int, db: Session = Depends(get_db)):
@@ -202,6 +207,8 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
         "description": item.description,
         "price": item.price,
         "size": item.size,
+        "category": item.category,
+        "brand": item.brand,
         "image_url": item.image_url,
         "is_sold": item.is_sold,
         "store_id": item.store_id,
@@ -224,6 +231,7 @@ def update_item(item_id: int, item: ItemUpdate, db: Session = Depends(get_db)):
     existing_item.price = item.price
     existing_item.size = item.size
     existing_item.category = item.category
+    existing_item.brand = item.brand
     existing_item.image_url = item.image_url
 
     db.commit()
@@ -259,6 +267,7 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
     db.delete(item)
     db.commit()
     return {"message": "Item deleted successfully"}
+
 
 @app.post("/items/{item_id}/upload-image")
 def upload_item_image(
