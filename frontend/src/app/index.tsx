@@ -186,6 +186,11 @@ export default function HomeScreen() {
               </View>
 
               <View style={{ padding: spacing.sm }}>
+                {item.brand && (
+                  <Text style={{ ...type.label, color: colors.wine, marginBottom: 2 }}>
+                    {item.brand}
+                  </Text>
+                )}
                 <Text style={{ ...type.h2, color: colors.ink }} numberOfLines={1}>
                   {item.title}
                 </Text>

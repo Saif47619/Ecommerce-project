@@ -18,7 +18,11 @@ export default function EditItemScreen() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [size, setSize] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+
+  const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +34,8 @@ export default function EditItemScreen() {
         setDescription(item.description || "");
         setPrice(String(item.price ?? ""));
         setSize(item.size || "");
+        setBrand(item.brand || "");
+        setCategory(item.category || "");
         setImageUrl(item.image_url || "");
       })
       .catch(() => Alert.alert("Error", "Could not load item"))
@@ -52,6 +58,8 @@ export default function EditItemScreen() {
           description,
           price: parseFloat(price),
           size,
+          brand,
+          category,
           image_url: imageUrl,
         }),
       });
@@ -117,6 +125,45 @@ export default function EditItemScreen() {
           height: 80,
         }}
       />
+
+      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Brand</Text>
+      <TextInput
+        placeholder="e.g. Nike, Zara, Levi's"
+        placeholderTextColor={colors.inkMuted}
+        value={brand}
+        onChangeText={setBrand}
+        style={{
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: radius.sm,
+          padding: 14,
+          marginBottom: spacing.md,
+          color: colors.ink,
+        }}
+      />
+
+      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Category</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: spacing.md }}>
+        {CATEGORIES.map((c) => (
+          <TouchableOpacity
+            key={c}
+            onPress={() => setCategory(c)}
+            style={{
+              paddingVertical: 8,
+              paddingHorizontal: 14,
+              borderRadius: radius.sm,
+              borderWidth: 1,
+              borderColor: category === c ? colors.wine : colors.border,
+              backgroundColor: category === c ? colors.wine : colors.surface,
+            }}
+          >
+            <Text style={{ color: category === c ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
+              {c}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
         <View style={{ flex: 1 }}>

@@ -124,11 +124,24 @@ export default function ItemDetailScreen() {
           </Link>
         )}
 
-        {item.size && (
-          <Text style={{ ...type.label, color: colors.inkMuted, marginTop: spacing.xs }}>
-            Size {item.size}
+        {item.brand && (
+          <Text style={{ ...type.label, color: colors.wine, marginTop: spacing.xs }}>
+            {item.brand}
           </Text>
         )}
+
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: 4 }}>
+          {item.size && (
+            <Text style={{ ...type.label, color: colors.inkMuted }}>
+              Size {item.size}
+            </Text>
+          )}
+          {item.category && (
+            <Text style={{ ...type.label, color: colors.inkMuted }}>
+              {item.category}
+            </Text>
+          )}
+        </View>
 
         {item.description && (
           <Text style={{ ...type.body, color: colors.ink, marginTop: spacing.md, lineHeight: 22 }}>
