@@ -35,3 +35,14 @@ class ItemUpdate(BaseModel):
     price: float
     size: Optional[str] = None
     image_url: Optional[str] = None
+
+class MessageCreate(BaseModel):
+    sender_id: int
+    receiver_id: int
+    item_id: Optional[int] = None
+    text: str
+    offer_price: Optional[float] = None
+
+
+class OfferResponse(BaseModel):
+    status: str  # "accepted" or "declined"

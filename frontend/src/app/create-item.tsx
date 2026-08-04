@@ -221,7 +221,7 @@ export default function CreateItemScreen() {
         onPress={handleCreateItem}
         disabled={submitting}
         style={{
-          backgroundColor: colors.denim,
+          backgroundColor: colors.wine,
           padding: 15,
           borderRadius: radius.sm,
           opacity: submitting ? 0.6 : 1,

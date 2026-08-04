@@ -84,7 +84,7 @@ export default function LoginScreen() {
 
       <TouchableOpacity
         onPress={handleLogin}
-        style={{ backgroundColor: colors.denim, padding: 15, borderRadius: radius.sm }}
+        style={{ backgroundColor: colors.wine, padding: 15, borderRadius: radius.sm }}
       >
         <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
           Log in
@@ -93,7 +93,7 @@ export default function LoginScreen() {
 
       <Link href="/signup" asChild>
         <TouchableOpacity style={{ marginTop: spacing.lg }}>
-          <Text style={{ color: colors.denim, textAlign: "center", fontWeight: "600" }}>
+          <Text style={{ color: colors.wine, textAlign: "center", fontWeight: "600" }}>
             Don't have an account? Sign up
           </Text>
         </TouchableOpacity>

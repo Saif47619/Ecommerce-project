@@ -75,7 +75,7 @@ export default function ProfileScreen() {
       {user.role === "seller" && (
         <>
           {loading ? (
-            <ActivityIndicator color={colors.denim} style={{ marginTop: spacing.lg }} />
+            <ActivityIndicator color={colors.wine} style={{ marginTop: spacing.lg }} />
           ) : !hasStore ? (
             <View
               style={{
@@ -128,7 +128,7 @@ export default function ProfileScreen() {
                 <View
                   style={{
                     flex: 1,
-                    backgroundColor: colors.clay,
+                    backgroundColor: colors.brass,
                     borderRadius: radius.md,
                     padding: spacing.sm,
                   }}
@@ -222,7 +222,7 @@ export default function ProfileScreen() {
             }}
           >
             <Text style={{ ...type.h2, color: colors.ink }}>{item.title}</Text>
-            <Text style={{ ...type.price, color: colors.clay }}>${item.price}</Text>
+            <Text style={{ ...type.price, color: colors.brass }}>${item.price}</Text>
           </View>
         ))
       )}

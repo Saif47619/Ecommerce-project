@@ -108,8 +108,8 @@ export default function SignupScreen() {
             padding: 14,
             borderRadius: radius.sm,
             borderWidth: 1,
-            borderColor: role === "buyer" ? colors.denim : colors.border,
-            backgroundColor: role === "buyer" ? colors.denim : colors.surface,
+            borderColor: role === "buyer" ? colors.wine : colors.border,
+            backgroundColor: role === "buyer" ? colors.wine : colors.surface,
           }}
         >
           <Text style={{ textAlign: "center", fontWeight: "700", color: role === "buyer" ? colors.white : colors.ink }}>
@@ -124,8 +124,8 @@ export default function SignupScreen() {
             padding: 14,
             borderRadius: radius.sm,
             borderWidth: 1,
-            borderColor: role === "seller" ? colors.denim : colors.border,
-            backgroundColor: role === "seller" ? colors.denim : colors.surface,
+            borderColor: role === "seller" ? colors.wine : colors.border,
+            backgroundColor: role === "seller" ? colors.wine : colors.surface,
           }}
         >
           <Text style={{ textAlign: "center", fontWeight: "700", color: role === "seller" ? colors.white : colors.ink }}>
@@ -145,7 +145,7 @@ export default function SignupScreen() {
 
       <Link href="/login" asChild>
         <TouchableOpacity style={{ marginTop: spacing.lg }}>
-          <Text style={{ color: colors.denim, textAlign: "center", fontWeight: "600" }}>
+          <Text style={{ color: colors.wine, textAlign: "center", fontWeight: "600" }}>
             Already have an account? Log in
           </Text>
         </TouchableOpacity>

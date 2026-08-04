@@ -2,6 +2,22 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 
+from sqlalchemy import DateTime
+from datetime import datetime
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=True)
+    text = Column(String, nullable=False)
+    offer_price = Column(Float, nullable=True)
+    offer_status = Column(String, nullable=True)  # "pending", "accepted", "declined"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class User(Base):
     __tablename__ = "users"

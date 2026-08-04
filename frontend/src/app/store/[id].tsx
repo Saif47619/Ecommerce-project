@@ -26,7 +26,7 @@ export default function StorePageScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center" }}>
-        <ActivityIndicator color={colors.denim} />
+        <ActivityIndicator color={colors.wine} />
       </View>
     );
   }
@@ -99,7 +99,7 @@ export default function StorePageScreen() {
                 <Text style={{ ...type.h2, color: colors.ink }} numberOfLines={1}>
                   {item.title}
                 </Text>
-                <Text style={{ ...type.price, color: colors.clay, marginTop: 4 }}>
+                <Text style={{ ...type.price, color: colors.brass, marginTop: 4 }}>
                   ${item.price}
                 </Text>
                 {item.is_sold && (

@@ -40,24 +40,45 @@ export default function HomeScreen() {
           {user ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               {user.role === "seller" && (
-                <Link href="/create-store" asChild>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: colors.denim,
-                      paddingVertical: 8,
-                      paddingHorizontal: 14,
-                      borderRadius: radius.sm,
-                    }}
-                  >
-                    <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
-                      + Store
-                    </Text>
-                  </TouchableOpacity>
-                </Link>
+                <>
+                  <Link href="/manage-store" asChild>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: colors.wine,
+                        paddingVertical: 8,
+                        paddingHorizontal: 14,
+                        borderRadius: radius.sm,
+                      }}
+                    >
+                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
+                        My Store
+                      </Text>
+                    </TouchableOpacity>
+                  </Link>
+                  <Link href="/create-item" asChild>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: colors.brass,
+                        paddingVertical: 8,
+                        paddingHorizontal: 14,
+                        borderRadius: radius.sm,
+                      }}
+                    >
+                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
+                        + Item
+                      </Text>
+                    </TouchableOpacity>
+                  </Link>
+                </>
               )}
+              <Link href="/inbox" asChild>
+                <TouchableOpacity>
+                  <Text style={{ color: colors.wine, fontWeight: "600" }}>Inbox</Text>
+                </TouchableOpacity>
+              </Link>
               <Link href="/profile" asChild>
                 <TouchableOpacity>
-                  <Text style={{ color: colors.denim, fontWeight: "600" }}>Profile</Text>
+                  <Text style={{ color: colors.wine, fontWeight: "600" }}>Profile</Text>
                 </TouchableOpacity>
               </Link>
               <TouchableOpacity onPress={logout}>
@@ -70,13 +91,13 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   style={{
                     borderWidth: 1,
-                    borderColor: colors.denim,
+                    borderColor: colors.wine,
                     paddingVertical: 8,
                     paddingHorizontal: 16,
                     borderRadius: radius.sm,
                   }}
                 >
-                  <Text style={{ color: colors.denim, fontWeight: "700" }}>Log in</Text>
+                  <Text style={{ color: colors.wine, fontWeight: "700" }}>Log in</Text>
                 </TouchableOpacity>
               </Link>
               <Link href="/signup" asChild>
@@ -184,7 +205,7 @@ export default function HomeScreen() {
                 >
                   <View
                     style={{
-                      backgroundColor: colors.clay,
+                      backgroundColor: colors.brass,
                       paddingVertical: 4,
                       paddingHorizontal: 10,
                       borderTopLeftRadius: radius.sm,
@@ -204,7 +225,7 @@ export default function HomeScreen() {
                       borderLeftWidth: 8,
                       borderTopColor: "transparent",
                       borderBottomColor: "transparent",
-                      borderLeftColor: colors.clay,
+                      borderLeftColor: colors.brass,
                     }}
                   />
                 </View>

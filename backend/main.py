@@ -15,8 +15,19 @@ from schemas import (
     StoreCreate,
     ItemCreate,
     ItemUpdate,
+    MessageCreate,
+    OfferResponse,
 )
 from auth import hash_password, verify_password
+from models import User, Store, Item, Message
+from schemas import (
+    UserCreate,
+    LoginRequest,
+    StoreCreate,
+    ItemCreate,
+    ItemUpdate,
+    MessageCreate,
+)
 
 app = FastAPI()
 
@@ -273,3 +284,120 @@ def upload_item_image(
     db.commit()
     db.refresh(item)
     return item
+
+
+@app.post("/messages")
+def send_message(message: MessageCreate, db: Session = Depends(get_db)):
+    new_message = Message(
+        sender_id=message.sender_id,
+        receiver_id=message.receiver_id,
+        item_id=message.item_id,
+        text=message.text,
+        offer_price=message.offer_price,
+        offer_status="pending" if message.offer_price is not None else None,
+    )
+    db.add(new_message)
+    db.commit()
+    db.refresh(new_message)
+    return new_message
+
+
+@app.put("/messages/{message_id}/respond-offer")
+def respond_offer(message_id: int, response: OfferResponse, db: Session = Depends(get_db)):
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if message.offer_price is None:
+        raise HTTPException(status_code=400, detail="This message is not an offer")
+    if message.offer_status != "pending":
+        raise HTTPException(status_code=400, detail="This offer was already responded to")
+
+    if response.status == "accepted":
+        if not message.item_id:
+            raise HTTPException(status_code=400, detail="This offer isn't linked to an item")
+
+        item = db.query(Item).filter(Item.id == message.item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        if item.is_sold:
+            raise HTTPException(status_code=400, detail="Item already sold")
+
+        item.is_sold = True
+        item.buyer_id = message.sender_id
+        item.price = message.offer_price
+
+        other_offers = (
+            db.query(Message)
+            .filter(
+                Message.item_id == message.item_id,
+                Message.id != message.id,
+                Message.offer_status == "pending",
+            )
+            .all()
+        )
+        for other in other_offers:
+            other.offer_status = "declined"
+
+    message.offer_status = response.status
+    db.commit()
+    db.refresh(message)
+    return message
+
+
+@app.get("/messages/thread/{user_a}/{user_b}")
+def get_thread(user_a: int, user_b: int, db: Session = Depends(get_db)):
+    messages = (
+        db.query(Message)
+        .filter(
+            ((Message.sender_id == user_a) & (Message.receiver_id == user_b))
+            | ((Message.sender_id == user_b) & (Message.receiver_id == user_a))
+        )
+        .order_by(Message.created_at.asc())
+        .all()
+    )
+
+    result = []
+    for m in messages:
+        item_title = None
+        if m.item_id:
+            item = db.query(Item).filter(Item.id == m.item_id).first()
+            if item:
+                item_title = item.title
+
+        result.append({
+            "id": m.id,
+            "sender_id": m.sender_id,
+            "receiver_id": m.receiver_id,
+            "item_id": m.item_id,
+            "item_title": item_title,
+            "text": m.text,
+            "offer_price": m.offer_price,
+            "offer_status": m.offer_status,
+            "created_at": m.created_at,
+        })
+
+    return result
+
+
+@app.get("/users/{user_id}/conversations")
+def get_conversations(user_id: int, db: Session = Depends(get_db)):
+    messages = (
+        db.query(Message)
+        .filter((Message.sender_id == user_id) | (Message.receiver_id == user_id))
+        .order_by(Message.created_at.desc())
+        .all()
+    )
+
+    seen = {}
+    for m in messages:
+        other_id = m.receiver_id if m.sender_id == user_id else m.sender_id
+        if other_id not in seen:
+            other_user = db.query(User).filter(User.id == other_id).first()
+            seen[other_id] = {
+                "user_id": other_id,
+                "name": other_user.name if other_user else "Unknown",
+                "last_message": m.text,
+                "last_message_at": m.created_at,
+            }
+
+    return list(seen.values())

@@ -58,7 +58,7 @@ export default function ItemDetailScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center" }}>
-        <ActivityIndicator color={colors.denim} />
+        <ActivityIndicator color={colors.wine} />
       </View>
     );
   }
@@ -94,14 +94,32 @@ export default function ItemDetailScreen() {
           <Text style={{ ...type.h1, color: colors.ink, flex: 1, marginRight: spacing.sm }}>
             {item.title}
           </Text>
-          <Text style={{ ...type.brand, color: colors.clay }}>${item.price}</Text>
+          <Text style={{ ...type.brand, color: colors.brass }}>${item.price}</Text>
         </View>
         {item.store && (
           <Link href={`/store/${item.store.id}` as any} asChild>
             <TouchableOpacity style={{ marginTop: spacing.xs }}>
-              <Text style={{ color: colors.denim, fontWeight: "600" }}>
+              <Text style={{ color: colors.wine, fontWeight: "600" }}>
                 Visit {item.store.name}
               </Text>
+            </TouchableOpacity>
+          </Link>
+        )}
+
+        {item.store && item.store.owner_id !== user?.id && (
+          <Link href={`/chat/${item.store.owner_id}?itemId=${item.id}` as any} asChild>
+            <TouchableOpacity
+              style={{
+                marginTop: spacing.sm,
+                borderWidth: 1,
+                borderColor: colors.wine,
+                borderRadius: radius.sm,
+                padding: 10,
+                alignSelf: "flex-start",
+                paddingHorizontal: 16,
+              }}
+            >
+              <Text style={{ color: colors.wine, fontWeight: "700" }}>Message seller</Text>
             </TouchableOpacity>
           </Link>
         )}
@@ -142,7 +160,7 @@ export default function ItemDetailScreen() {
               onPress={handleBuy}
               disabled={buying}
               style={{
-                backgroundColor: colors.denim,
+                backgroundColor: colors.wine,
                 padding: 15,
                 borderRadius: radius.sm,
                 opacity: buying ? 0.6 : 1,
