@@ -9,17 +9,21 @@ import { colors, spacing, radius, type } from "../constants/reloop-theme";
 export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { user, logout } = useAuth();
+
+  const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
 
   useEffect(() => {
     const params = new URLSearchParams();
     if (search) params.append("search", search);
+    if (selectedCategory) params.append("category", selectedCategory);
 
     fetch(`${API_URL}/items?${params.toString()}`)
       .then((response) => response.json())
       .then((data) => setItems(data))
       .catch((error) => console.log("ERROR:", error));
-  }, [search]);
+  }, [search, selectedCategory]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -141,8 +145,50 @@ export default function HomeScreen() {
           }}
         />
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: spacing.md }}
+          contentContainerStyle={{ gap: spacing.xs }}
+        >
+          <TouchableOpacity
+            onPress={() => setSelectedCategory(null)}
+            style={{
+              paddingVertical: 8,
+              paddingHorizontal: 16,
+              borderRadius: radius.sm,
+              borderWidth: 1,
+              borderColor: selectedCategory === null ? colors.wine : colors.border,
+              backgroundColor: selectedCategory === null ? colors.wine : colors.surface,
+            }}
+          >
+            <Text style={{ color: selectedCategory === null ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
+              All
+            </Text>
+          </TouchableOpacity>
+
+          {CATEGORIES.map((c) => (
+            <TouchableOpacity
+              key={c}
+              onPress={() => setSelectedCategory(c)}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: radius.sm,
+                borderWidth: 1,
+                borderColor: selectedCategory === c ? colors.wine : colors.border,
+                backgroundColor: selectedCategory === c ? colors.wine : colors.surface,
+              }}
+            >
+              <Text style={{ color: selectedCategory === c ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
+                {c}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
-          {search ? `Results for "${search}"` : "Just listed"}
+          {selectedCategory ? selectedCategory : search ? `Results for "${search}"` : "Just listed"}
         </Text>
 
         {items.length === 0 && (
