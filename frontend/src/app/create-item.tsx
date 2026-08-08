@@ -24,24 +24,31 @@ export default function CreateItemScreen() {
   const [category, setCategory] = useState("");
 
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageUris, setImageUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const pickImage = async () => {
+  const pickImages = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow photo access to add a picture");
+      Alert.alert("Permission needed", "Allow photo access to add pictures");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.7,
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      const uris = result.assets.map((asset) => asset.uri);
+      setImageUris((prev) => [...prev, ...uris].slice(0, 5));
     }
+  };
+
+  const removeImage = (uri: string) => {
+    setImageUris((prev) => prev.filter((u) => u !== uri));
   };
 
   const handleCreateItem = async () => {
@@ -91,22 +98,25 @@ export default function CreateItemScreen() {
         return;
       }
 
-      // 3. If a photo was picked, upload it
-      if (imageUri) {
+      // 3. If photos were picked, upload them all
+      if (imageUris.length > 0) {
         const formData = new FormData();
-        const filename = imageUri.split("/").pop() || "photo.jpg";
 
-        formData.append("file", {
-          uri: imageUri,
-          name: filename,
-          type: "image/jpeg",
-        } as any);
+        for (let i = 0; i < imageUris.length; i++) {
+          const uri = imageUris[i];
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          formData.append("files", blob, `photo${i}.jpg`);
+        }
 
-        await fetch(`${API_URL}/items/${item.id}/upload-image`, {
+        const uploadRes = await fetch(`${API_URL}/items/${item.id}/upload-images`, {
           method: "POST",
           body: formData,
-          headers: { "Content-Type": "multipart/form-data" },
         });
+
+        if (!uploadRes.ok) {
+          console.log("Image upload failed:", await uploadRes.text());
+        }
       }
 
       Alert.alert("Listed", `"${title}" is now live on Reloop`);
@@ -127,27 +137,55 @@ export default function CreateItemScreen() {
         Add a piece to your store
       </Text>
 
-      <TouchableOpacity
-        onPress={pickImage}
-        style={{
-          height: 180,
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderStyle: "dashed",
-          borderRadius: radius.md,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: spacing.md,
-          overflow: "hidden",
-        }}
-      >
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-        ) : (
-          <Text style={{ color: colors.inkMuted, fontWeight: "600" }}>Tap to add a photo</Text>
-        )}
-      </TouchableOpacity>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          {imageUris.map((uri) => (
+            <View key={uri} style={{ position: "relative" }}>
+              <Image
+                source={{ uri }}
+                style={{ width: 100, height: 100, borderRadius: radius.sm }}
+                resizeMode="cover"
+              />
+              <TouchableOpacity
+                onPress={() => removeImage(uri)}
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  right: 4,
+                  backgroundColor: "rgba(0,0,0,0.6)",
+                  borderRadius: 10,
+                  width: 20,
+                  height: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {imageUris.length < 5 && (
+            <TouchableOpacity
+              onPress={pickImages}
+              style={{
+                width: 100,
+                height: 100,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderStyle: "dashed",
+                borderRadius: radius.sm,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: colors.inkMuted, fontSize: 24 }}>+</Text>
+              <Text style={{ color: colors.inkMuted, fontSize: 11 }}>Add photo</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
 
       <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Title</Text>
       <TextInput

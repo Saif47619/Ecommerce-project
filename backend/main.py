@@ -7,11 +7,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-
+from models import User, Store, Item, Message, ItemImage
 from database import engine, SessionLocal, Base
 
 from auth import hash_password, verify_password
-from models import User, Store, Item, Message
 from schemas import (
     UserCreate,
     LoginRequest,
@@ -180,7 +179,26 @@ def get_items(
     if max_price is not None:
         query = query.filter(Item.price <= max_price)
 
-    return query.all()
+    items = query.all()
+
+    result = []
+    for item in items:
+        photo_count = db.query(ItemImage).filter(ItemImage.item_id == item.id).count()
+        result.append({
+            "id": item.id,
+            "title": item.title,
+            "description": item.description,
+            "price": item.price,
+            "size": item.size,
+            "category": item.category,
+            "brand": item.brand,
+            "image_url": item.image_url,
+            "is_sold": item.is_sold,
+            "store_id": item.store_id,
+            "photo_count": photo_count,
+        })
+
+    return result
 
 
 @app.get("/stores/{store_id}/items")
@@ -407,3 +425,73 @@ def get_conversations(user_id: int, db: Session = Depends(get_db)):
             }
 
     return list(seen.values())
+
+
+
+@app.post("/items/{item_id}/upload-images")
+async def upload_item_images(
+    item_id: int,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    existing_count = db.query(ItemImage).filter(ItemImage.item_id == item_id).count()
+
+    saved_images = []
+    for i, file in enumerate(files):
+        file_extension = file.filename.split(".")[-1]
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = os.path.join("uploads", unique_filename)
+
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        image_url = f"/uploads/{unique_filename}"
+
+        new_image = ItemImage(item_id=item_id, image_url=image_url, position=existing_count + i)
+        db.add(new_image)
+        saved_images.append(image_url)
+
+        if not item.image_url:
+            item.image_url = image_url
+
+    db.commit()
+    return {"images": saved_images}
+
+
+@app.get("/items/{item_id}/images")
+def get_item_images(item_id: int, db: Session = Depends(get_db)):
+    images = db.query(ItemImage).filter(ItemImage.item_id == item_id).order_by(ItemImage.position).all()
+    return images
+
+@app.delete("/item-images/{image_id}")
+def delete_item_image(image_id: int, db: Session = Depends(get_db)):
+    image = db.query(ItemImage).filter(ItemImage.id == image_id).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    item = db.query(Item).filter(Item.id == image.item_id).first()
+    db.delete(image)
+    db.commit()
+
+    remaining = db.query(ItemImage).filter(ItemImage.item_id == image.item_id).order_by(ItemImage.position).all()
+    if item:
+        item.image_url = remaining[0].image_url if remaining else None
+        db.commit()
+
+    return {"message": "Image deleted"}
+
+
+@app.put("/items/{item_id}/reorder-images")
+def reorder_item_images(item_id: int, image_ids: list[int], db: Session = Depends(get_db)):
+    for index, img_id in enumerate(image_ids):
+        image = db.query(ItemImage).filter(ItemImage.id == img_id, ItemImage.item_id == item_id).first()
+        if image:
+            image.position = index
+    db.commit()
+
+    images = db.query(ItemImage).filter(ItemImage.item_id == item_id).order_by(ItemImage.position).all()
+    return images

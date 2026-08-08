@@ -59,3 +59,12 @@ class Item(Base):
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     store = relationship("Store", back_populates="items")
+
+
+class ItemImage(Base):
+    __tablename__ = "item_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
+    image_url = Column(String, nullable=False)
+    position = Column(Integer, default=0)

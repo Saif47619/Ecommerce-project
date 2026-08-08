@@ -242,6 +242,7 @@ export default function HomeScreen() {
 
         <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
           {selectedCategory ? selectedCategory : search ? `Results for "${search}"` : "Just listed"}
+          {items.length > 0 ? `  ·  ${items.length} ${items.length === 1 ? "item" : "items"}` : ""}
         </Text>
 
         {items.length === 0 && (
@@ -251,90 +252,87 @@ export default function HomeScreen() {
               alignItems: "center",
             }}
           >
-            <Text style={{ ...type.body, color: colors.inkMuted }}>
-              No items yet — check back soon.
+            <Text style={{ fontSize: 40, marginBottom: spacing.sm }}>🔍</Text>
+            <Text style={{ ...type.h2, color: colors.ink, marginBottom: 4 }}>
+              Nothing here yet
+            </Text>
+            <Text style={{ ...type.body, color: colors.inkMuted, textAlign: "center" }}>
+              {selectedCategory ? `No items in ${selectedCategory} right now.` : "Check back soon, or list something yourself."}
             </Text>
           </View>
         )}
 
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md, rowGap: spacing.lg }}>
           {items.map((item) => (
             <Link key={item.id} href={`/item/${item.id}` as any} asChild>
-              <TouchableOpacity
-                style={{
-                  width: "47.5%",
-                  backgroundColor: colors.surface,
-                  borderRadius: radius.md,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  overflow: "hidden",
-                }}
-              >
-              <View style={{ height: 140, backgroundColor: colors.border }}>
-                {item.image_url ? (
-                  <Image
-                    source={{ uri: `${API_URL}${item.image_url}` }}
-                    style={{ width: "100%", height: "100%" }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
-                  </View>
-                )}
-              </View>
+              <TouchableOpacity style={{ width: "47.5%" }}>
+                <View
+                  style={{
+                    width: "100%",
+                    aspectRatio: 0.85,
+                    backgroundColor: colors.border,
+                    borderRadius: radius.md,
+                    overflow: "hidden",
+                    marginBottom: spacing.xs,
+                  }}
+                >
+                  {item.image_url ? (
+                    <Image
+                      source={{ uri: `${API_URL}${item.image_url}` }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
+                    </View>
+                  )}
+                  {item.is_sold && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: spacing.xs,
+                        left: spacing.xs,
+                        backgroundColor: "rgba(43,30,34,0.75)",
+                        paddingVertical: 3,
+                        paddingHorizontal: 8,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{ color: colors.white, fontSize: 10, fontWeight: "700" }}>SOLD</Text>
+                    </View>
+                  )}
+                  {item.photo_count > 1 && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: spacing.xs,
+                        right: spacing.xs,
+                        backgroundColor: "rgba(43,30,34,0.75)",
+                        paddingVertical: 2,
+                        paddingHorizontal: 7,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text style={{ color: colors.white, fontSize: 10, fontWeight: "700" }}>
+                        1/{item.photo_count}
+                      </Text>
+                    </View>
+                  )}
+                </View>
 
-              <View style={{ padding: spacing.sm }}>
                 {item.brand && (
-                  <Text style={{ ...type.label, color: colors.wine, marginBottom: 2 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: colors.ink, textTransform: "uppercase", letterSpacing: 0.3 }}>
                     {item.brand}
                   </Text>
                 )}
-                <Text style={{ ...type.h2, color: colors.ink }} numberOfLines={1}>
-                  {item.title}
+                <Text style={{ fontSize: 13, color: colors.inkMuted, marginTop: 1 }} numberOfLines={1}>
+                  {item.title}{item.size ? ` · Size ${item.size}` : ""}
                 </Text>
-                {item.size && (
-                  <Text style={{ ...type.label, color: colors.inkMuted, marginTop: 2 }}>
-                    Size {item.size}
-                  </Text>
-                )}
-
-                {/* Signature: clipped price tag */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: spacing.sm,
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: colors.brass,
-                      paddingVertical: 4,
-                      paddingHorizontal: 10,
-                      borderTopLeftRadius: radius.sm,
-                      borderBottomLeftRadius: radius.sm,
-                    }}
-                  >
-                    <Text style={{ ...type.price, color: colors.white }}>
-                      ${item.price}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      width: 0,
-                      height: 0,
-                      borderTopWidth: 13,
-                      borderBottomWidth: 13,
-                      borderLeftWidth: 8,
-                      borderTopColor: "transparent",
-                      borderBottomColor: "transparent",
-                      borderLeftColor: colors.brass,
-                    }}
-                  />
-                </View>
-              </View>
-            </TouchableOpacity>
+                <Text style={{ ...type.price, color: colors.ink, marginTop: 3 }}>
+                  ${item.price}
+                </Text>
+              </TouchableOpacity>
             </Link>
           ))}
         </View>

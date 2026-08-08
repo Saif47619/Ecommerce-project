@@ -9,6 +9,8 @@ export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams();
   const { user } = useAuth();
   const [item, setItem] = useState<any>(null);
+  const [images, setImages] = useState<any[]>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
 
@@ -18,6 +20,11 @@ export default function ItemDetailScreen() {
       .then((data) => setItem(data))
       .catch(() => Alert.alert("Error", "Could not load item"))
       .finally(() => setLoading(false));
+
+    fetch(`${API_URL}/items/${id}/images`)
+      .then((res) => res.json())
+      .then((data) => setImages(data))
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -76,7 +83,52 @@ export default function ItemDetailScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ height: 320, backgroundColor: colors.border }}>
-        {item.image_url ? (
+        {images.length > 0 ? (
+          <>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width);
+                setActiveImageIndex(index);
+              }}
+            >
+              {images.map((img) => (
+                <Image
+                  key={img.id}
+                  source={{ uri: `${API_URL}${img.image_url}` }}
+                  style={{ width: 900, maxWidth: "100%", height: 320 }}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
+
+            {images.length > 1 && (
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: spacing.sm,
+                  alignSelf: "center",
+                  flexDirection: "row",
+                  gap: 6,
+                }}
+              >
+                {images.map((_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: i === activeImageIndex ? colors.white : "rgba(255,255,255,0.4)",
+                    }}
+                  />
+                ))}
+              </View>
+            )}
+          </>
+        ) : item.image_url ? (
           <Image
             source={{ uri: `${API_URL}${item.image_url}` }}
             style={{ width: "100%", height: "100%" }}
