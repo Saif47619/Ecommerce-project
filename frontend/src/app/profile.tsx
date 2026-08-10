@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { useAuth } from "../context/auth-context";
 import { API_URL } from "../lib/api";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
@@ -12,7 +13,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [hasStore, setHasStore] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (!user) {
       router.replace("/login");
       return;
@@ -22,11 +23,6 @@ export default function ProfileScreen() {
       .then((res) => res.json())
       .then((data) => setPurchases(data))
       .catch(() => {});
-
-    if (user.role !== "seller") {
-      setLoading(false);
-      return;
-    }
 
     fetch(`${API_URL}/stores/by-owner/${user.id}`)
       .then((res) => {
@@ -42,6 +38,12 @@ export default function ProfileScreen() {
       .catch(() => setHasStore(false))
       .finally(() => setLoading(false));
   }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   if (!user) return null;
 
@@ -67,123 +69,116 @@ export default function ProfileScreen() {
       >
         <Text style={{ ...type.label, color: colors.inkMuted }}>Name</Text>
         <Text style={{ ...type.h2, color: colors.ink, marginBottom: spacing.sm }}>{user.name}</Text>
-
-        <Text style={{ ...type.label, color: colors.inkMuted }}>Account type</Text>
-        <Text style={{ ...type.h2, color: colors.ink, textTransform: "capitalize" }}>{user.role}</Text>
       </View>
 
-      {user.role === "seller" && (
+      {loading ? (
+        <ActivityIndicator color={colors.wine} style={{ marginTop: spacing.lg }} />
+      ) : !hasStore ? (
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            padding: spacing.md,
+          }}
+        >
+          <Text style={{ ...type.body, color: colors.inkMuted }}>
+            You haven't created a store yet.
+          </Text>
+        </View>
+      ) : (
         <>
-          {loading ? (
-            <ActivityIndicator color={colors.wine} style={{ marginTop: spacing.lg }} />
-          ) : !hasStore ? (
+          <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
+            Dashboard
+          </Text>
+
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md }}>
             <View
               style={{
+                flex: 1,
                 backgroundColor: colors.surface,
                 borderWidth: 1,
                 borderColor: colors.border,
                 borderRadius: radius.md,
-                padding: spacing.md,
+                padding: spacing.sm,
               }}
             >
-              <Text style={{ ...type.body, color: colors.inkMuted }}>
-                You haven't created a store yet.
-              </Text>
+              <Text style={{ ...type.label, color: colors.inkMuted }}>Active</Text>
+              <Text style={{ ...type.h1, color: colors.ink }}>{activeItems.length}</Text>
             </View>
-          ) : (
-            <>
-              <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
-                Dashboard
-              </Text>
 
-              <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md }}>
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: radius.md,
-                    padding: spacing.sm,
-                  }}
-                >
-                  <Text style={{ ...type.label, color: colors.inkMuted }}>Active</Text>
-                  <Text style={{ ...type.h1, color: colors.ink }}>{activeItems.length}</Text>
-                </View>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.md,
+                padding: spacing.sm,
+              }}
+            >
+              <Text style={{ ...type.label, color: colors.inkMuted }}>Sold</Text>
+              <Text style={{ ...type.h1, color: colors.ink }}>{soldItems.length}</Text>
+            </View>
 
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: radius.md,
-                    padding: spacing.sm,
-                  }}
-                >
-                  <Text style={{ ...type.label, color: colors.inkMuted }}>Sold</Text>
-                  <Text style={{ ...type.h1, color: colors.ink }}>{soldItems.length}</Text>
-                </View>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: colors.brass,
+                borderRadius: radius.md,
+                padding: spacing.sm,
+              }}
+            >
+              <Text style={{ ...type.label, color: colors.white }}>Earned</Text>
+              <Text style={{ ...type.h1, color: colors.white }}>${totalEarnings.toFixed(2)}</Text>
+            </View>
+          </View>
 
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: colors.brass,
-                    borderRadius: radius.md,
-                    padding: spacing.sm,
-                  }}
-                >
-                  <Text style={{ ...type.label, color: colors.white }}>Earned</Text>
-                  <Text style={{ ...type.h1, color: colors.white }}>${totalEarnings.toFixed(2)}</Text>
-                </View>
+          <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
+            Your listings
+          </Text>
+
+          {items.length === 0 && (
+            <Text style={{ ...type.body, color: colors.inkMuted }}>
+              No items listed yet.
+            </Text>
+          )}
+
+          {items.map((item) => (
+            <View
+              key={item.id}
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.sm,
+                padding: spacing.sm,
+                marginBottom: spacing.xs,
+              }}
+            >
+              <View>
+                <Text style={{ ...type.h2, color: colors.ink }}>{item.title}</Text>
+                <Text style={{ ...type.body, color: colors.inkMuted }}>${item.price}</Text>
               </View>
 
-              <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
-                Your listings
-              </Text>
-
-              {items.length === 0 && (
-                <Text style={{ ...type.body, color: colors.inkMuted }}>
-                  No items listed yet.
+              <View
+                style={{
+                  paddingVertical: 4,
+                  paddingHorizontal: 10,
+                  borderRadius: radius.sm,
+                  backgroundColor: item.is_sold ? colors.sage : colors.border,
+                }}
+              >
+                <Text style={{ ...type.label, color: item.is_sold ? colors.white : colors.inkMuted }}>
+                  {item.is_sold ? "Sold" : "Active"}
                 </Text>
-              )}
-
-              {items.map((item) => (
-                <View
-                  key={item.id}
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: radius.sm,
-                    padding: spacing.sm,
-                    marginBottom: spacing.xs,
-                  }}
-                >
-                  <View>
-                    <Text style={{ ...type.h2, color: colors.ink }}>{item.title}</Text>
-                    <Text style={{ ...type.body, color: colors.inkMuted }}>${item.price}</Text>
-                  </View>
-
-                  <View
-                    style={{
-                      paddingVertical: 4,
-                      paddingHorizontal: 10,
-                      borderRadius: radius.sm,
-                      backgroundColor: item.is_sold ? colors.sage : colors.border,
-                    }}
-                  >
-                    <Text style={{ ...type.label, color: item.is_sold ? colors.white : colors.inkMuted }}>
-                      {item.is_sold ? "Sold" : "Active"}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </>
-          )}
+              </View>
+            </View>
+          ))}
         </>
       )}
 

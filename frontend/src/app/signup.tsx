@@ -99,41 +99,6 @@ export default function SignupScreen() {
         }}
       />
 
-      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>I want to</Text>
-      <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
-        <TouchableOpacity
-          onPress={() => setRole("buyer")}
-          style={{
-            flex: 1,
-            padding: 14,
-            borderRadius: radius.sm,
-            borderWidth: 1,
-            borderColor: role === "buyer" ? colors.wine : colors.border,
-            backgroundColor: role === "buyer" ? colors.wine : colors.surface,
-          }}
-        >
-          <Text style={{ textAlign: "center", fontWeight: "700", color: role === "buyer" ? colors.white : colors.ink }}>
-            Buy clothes
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setRole("seller")}
-          style={{
-            flex: 1,
-            padding: 14,
-            borderRadius: radius.sm,
-            borderWidth: 1,
-            borderColor: role === "seller" ? colors.wine : colors.border,
-            backgroundColor: role === "seller" ? colors.wine : colors.surface,
-          }}
-        >
-          <Text style={{ textAlign: "center", fontWeight: "700", color: role === "seller" ? colors.white : colors.ink }}>
-            Sell clothes
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <TouchableOpacity
         onPress={handleSignup}
         style={{ backgroundColor: colors.ink, padding: 15, borderRadius: radius.sm }}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput } from "react-native";
-import { Link } from "expo-router";
+import { Link, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
@@ -11,10 +12,10 @@ export default function HomeScreen() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { user, logout } = useAuth();
-
+  const [menuOpen, setMenuOpen] = useState(false);
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
 
-  useEffect(() => {
+  const loadItems = useCallback(() => {
     const params = new URLSearchParams();
     if (search) params.append("search", search);
     if (selectedCategory) params.append("category", selectedCategory);
@@ -24,6 +25,12 @@ export default function HomeScreen() {
       .then((data) => setItems(data))
       .catch((error) => console.log("ERROR:", error));
   }, [search, selectedCategory]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadItems();
+    }, [loadItems])
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -39,85 +46,25 @@ export default function HomeScreen() {
         }}
       >
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Text style={{ ...type.brand, color: colors.ink }}>Reloop</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <TouchableOpacity onPress={() => setMenuOpen(!menuOpen)} style={{ padding: 4 }}>
+              <Text style={{ fontSize: 22, color: colors.ink }}>☰</Text>
+            </TouchableOpacity>
+            <Text style={{ ...type.brand, color: colors.ink }}>Reloop</Text>
+          </View>
 
-          {user ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-              {user.role === "seller" && (
-                <>
-                  <Link href="/manage-store" asChild>
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: colors.wine,
-                        paddingVertical: 8,
-                        paddingHorizontal: 14,
-                        borderRadius: radius.sm,
-                      }}
-                    >
-                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
-                        My Store
-                      </Text>
-                    </TouchableOpacity>
-                  </Link>
-                  <Link href="/create-item" asChild>
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: colors.brass,
-                        paddingVertical: 8,
-                        paddingHorizontal: 14,
-                        borderRadius: radius.sm,
-                      }}
-                    >
-                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
-                        + Item
-                      </Text>
-                    </TouchableOpacity>
-                  </Link>
-                </>
-              )}
-              <Link href="/inbox" asChild>
-                <TouchableOpacity>
-                  <Text style={{ color: colors.wine, fontWeight: "600" }}>Inbox</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/profile" asChild>
-                <TouchableOpacity>
-                  <Text style={{ color: colors.wine, fontWeight: "600" }}>Profile</Text>
-                </TouchableOpacity>
-              </Link>
-              <TouchableOpacity onPress={logout}>
-                <Text style={{ color: colors.inkMuted, fontWeight: "600" }}>Logout</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Link href="/login" asChild>
-                <TouchableOpacity
-                  style={{
-                    borderWidth: 1,
-                    borderColor: colors.wine,
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: radius.sm,
-                  }}
-                >
-                  <Text style={{ color: colors.wine, fontWeight: "700" }}>Log in</Text>
-                </TouchableOpacity>
-              </Link>
-              <Link href="/signup" asChild>
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: colors.ink,
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: radius.sm,
-                  }}
-                >
-                  <Text style={{ color: colors.white, fontWeight: "700" }}>Sign up</Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
-          )}
+          <Link href={user ? "/create-item" : "/signup"} asChild>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.wine,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: radius.sm,
+              }}
+            >
+              <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>Sell</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
 
         {user && (
@@ -125,7 +72,78 @@ export default function HomeScreen() {
             Welcome back, {user.name}
           </Text>
         )}
+
+        {menuOpen && (
+          <View
+            style={{
+              marginTop: spacing.sm,
+              backgroundColor: colors.background,
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: colors.border,
+              overflow: "hidden",
+            }}
+          >
+            {user ? (
+              <>
+                <Link href="/profile" asChild>
+                  <TouchableOpacity
+                    onPress={() => setMenuOpen(false)}
+                    style={{ padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    <Text style={{ color: colors.ink, fontWeight: "600" }}>Profile</Text>
+                  </TouchableOpacity>
+                </Link>
+
+                <Link href="/manage-store" asChild>
+                  <TouchableOpacity
+                    onPress={() => setMenuOpen(false)}
+                    style={{ padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    <Text style={{ color: colors.ink, fontWeight: "600" }}>My Store</Text>
+                  </TouchableOpacity>
+                </Link>
+
+                <Link href="/inbox" asChild>
+                  <TouchableOpacity
+                    onPress={() => setMenuOpen(false)}
+                    style={{ padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    <Text style={{ color: colors.ink, fontWeight: "600" }}>Inbox</Text>
+                  </TouchableOpacity>
+                </Link>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                  style={{ padding: spacing.md }}
+                >
+                  <Text style={{ color: colors.inkMuted, fontWeight: "600" }}>Logout</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Link href="/login" asChild>
+                  <TouchableOpacity
+                    onPress={() => setMenuOpen(false)}
+                    style={{ padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  >
+                    <Text style={{ color: colors.ink, fontWeight: "600" }}>Log in</Text>
+                  </TouchableOpacity>
+                </Link>
+                <Link href="/signup" asChild>
+                  <TouchableOpacity onPress={() => setMenuOpen(false)} style={{ padding: spacing.md }}>
+                    <Text style={{ color: colors.ink, fontWeight: "600" }}>Sign up</Text>
+                  </TouchableOpacity>
+                </Link>
+              </>
+            )}
+          </View>
+        )}
       </View>
+
       {/* Feed */}
       <ScrollView contentContainerStyle={{ padding: spacing.md, maxWidth: 900, width: "100%", alignSelf: "center" }}>
         {!user && (
@@ -160,7 +178,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {user && user.role === "seller" && (
+        {user && (
           <Link href="/create-item" asChild>
             <TouchableOpacity
               style={{
