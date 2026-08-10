@@ -98,12 +98,10 @@ def create_store(store: StoreCreate, db: Session = Depends(get_db)):
     owner = db.query(User).filter(User.id == store.owner_id).first()
     if not owner:
         raise HTTPException(status_code=404, detail="User not found")
-    if owner.role != "seller":
-        raise HTTPException(status_code=403, detail="Only sellers can create a store")
 
     existing_store = db.query(Store).filter(Store.owner_id == store.owner_id).first()
     if existing_store:
-        raise HTTPException(status_code=400, detail="This seller already has a store")
+        raise HTTPException(status_code=400, detail="You already have a store")
 
     new_store = Store(
         name=store.name,
@@ -179,6 +177,7 @@ def get_items(
     if max_price is not None:
         query = query.filter(Item.price <= max_price)
 
+    query = query.filter(Item.is_sold == False)
     items = query.all()
 
     result = []
