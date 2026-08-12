@@ -143,6 +143,8 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
         size=item.size,
         category=item.category,
         brand=item.brand,
+        condition=item.condition,
+        color=item.color,
         image_url=item.image_url,
         store_id=item.store_id,
     )
@@ -191,6 +193,8 @@ def get_items(
             "size": item.size,
             "category": item.category,
             "brand": item.brand,
+            "condition": item.condition,
+            "color": item.color,
             "image_url": item.image_url,
             "is_sold": item.is_sold,
             "store_id": item.store_id,
@@ -203,6 +207,16 @@ def get_items(
 @app.get("/stores/{store_id}/items")
 def get_store_items(store_id: int, db: Session = Depends(get_db)):
     return db.query(Item).filter(Item.store_id == store_id).all()
+
+
+@app.get("/stores/{store_id}/items/{exclude_item_id}/other")
+def get_other_store_items(store_id: int, exclude_item_id: int, db: Session = Depends(get_db)):
+    return (
+        db.query(Item)
+        .filter(Item.store_id == store_id, Item.id != exclude_item_id, Item.is_sold == False)
+        .limit(8)
+        .all()
+    )
 
 
 @app.get("/users/{user_id}/purchases")
@@ -226,6 +240,9 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
         "size": item.size,
         "category": item.category,
         "brand": item.brand,
+        "condition": item.condition,
+        "color": item.color,
+        "created_at": item.created_at,
         "image_url": item.image_url,
         "is_sold": item.is_sold,
         "store_id": item.store_id,
@@ -249,6 +266,8 @@ def update_item(item_id: int, item: ItemUpdate, db: Session = Depends(get_db)):
     existing_item.size = item.size
     existing_item.category = item.category
     existing_item.brand = item.brand
+    existing_item.condition = item.condition
+    existing_item.color = item.color
     existing_item.image_url = item.image_url
 
     db.commit()
@@ -426,7 +445,6 @@ def get_conversations(user_id: int, db: Session = Depends(get_db)):
     return list(seen.values())
 
 
-
 @app.post("/items/{item_id}/upload-images")
 async def upload_item_images(
     item_id: int,
@@ -465,6 +483,7 @@ async def upload_item_images(
 def get_item_images(item_id: int, db: Session = Depends(get_db)):
     images = db.query(ItemImage).filter(ItemImage.item_id == item_id).order_by(ItemImage.position).all()
     return images
+
 
 @app.delete("/item-images/{image_id}")
 def delete_item_image(image_id: int, db: Session = Depends(get_db)):

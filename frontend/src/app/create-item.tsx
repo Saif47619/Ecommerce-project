@@ -22,10 +22,13 @@ export default function CreateItemScreen() {
   const [size, setSize] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
-
-  const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
+  const [condition, setCondition] = useState("");
+  const [color, setColor] = useState("");
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
+  const CONDITIONS = ["New with tags", "Like new", "Good", "Fair"];
 
   const pickImages = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -51,12 +54,19 @@ export default function CreateItemScreen() {
     setImageUris((prev) => prev.filter((u) => u !== uri));
   };
 
+  const moveImage = (index: number, direction: "left" | "right") => {
+    const newUris = [...imageUris];
+    const targetIndex = direction === "left" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newUris.length) return;
+    [newUris[index], newUris[targetIndex]] = [newUris[targetIndex], newUris[index]];
+    setImageUris(newUris);
+  };
+
   const handleCreateItem = async () => {
     if (!user) {
       Alert.alert("Error", "You must be logged in");
       return;
     }
-
     if (!title || !price) {
       Alert.alert("Error", "Title and price are required");
       return;
@@ -65,7 +75,6 @@ export default function CreateItemScreen() {
     setSubmitting(true);
 
     try {
-      // 1. Find this seller's store
       const storeRes = await fetch(`${API_URL}/stores/by-owner/${user.id}`);
       if (!storeRes.ok) {
         Alert.alert("Error", "Create a store first before adding items");
@@ -74,7 +83,6 @@ export default function CreateItemScreen() {
       }
       const store = await storeRes.json();
 
-      // 2. Create the item
       const itemRes = await fetch(`${API_URL}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,6 +93,8 @@ export default function CreateItemScreen() {
           size,
           brand,
           category,
+          condition,
+          color,
           image_url: "",
           store_id: store.id,
         }),
@@ -98,25 +108,18 @@ export default function CreateItemScreen() {
         return;
       }
 
-      // 3. If photos were picked, upload them all
       if (imageUris.length > 0) {
         const formData = new FormData();
-
         for (let i = 0; i < imageUris.length; i++) {
-          const uri = imageUris[i];
-          const response = await fetch(uri);
+          const response = await fetch(imageUris[i]);
           const blob = await response.blob();
           formData.append("files", blob, `photo${i}.jpg`);
         }
 
-        const uploadRes = await fetch(`${API_URL}/items/${item.id}/upload-images`, {
+        await fetch(`${API_URL}/items/${item.id}/upload-images`, {
           method: "POST",
           body: formData,
         });
-
-        if (!uploadRes.ok) {
-          console.log("Image upload failed:", await uploadRes.text());
-        }
       }
 
       Alert.alert("Listed", `"${title}" is now live on Reloop`);
@@ -129,173 +132,200 @@ export default function CreateItemScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg }}>
-      <Text style={{ ...type.brand, color: colors.ink, marginTop: 20, marginBottom: spacing.xs }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
+      <Text style={{ ...type.brand, color: colors.ink, marginTop: 56, marginLeft: spacing.lg, marginBottom: spacing.lg }}>
         List an item
       </Text>
-      <Text style={{ ...type.body, color: colors.inkMuted, marginBottom: spacing.lg }}>
-        Add a piece to your store
-      </Text>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.md }}>
-        <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          {imageUris.map((uri) => (
-            <View key={uri} style={{ position: "relative" }}>
-              <Image
-                source={{ uri }}
-                style={{ width: 100, height: 100, borderRadius: radius.sm }}
-                resizeMode="cover"
-              />
+      {/* Photos section */}
+      <SectionLabel text="Photos" />
+      <View style={{ backgroundColor: colors.surface, paddingVertical: spacing.md, paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            {imageUris.map((uri, index) => (
+              <View key={uri} style={{ width: 84 }}>
+                <View style={{ position: "relative" }}>
+                  <Image source={{ uri }} style={{ width: 84, height: 84, borderRadius: radius.sm }} resizeMode="cover" />
+                  {index === 0 && (
+                    <View style={{ position: "absolute", bottom: 4, left: 4, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                      <Text style={{ color: colors.white, fontSize: 9, fontWeight: "700" }}>MAIN</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => removeImage(uri)}
+                    style={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      backgroundColor: "rgba(0,0,0,0.6)",
+                      borderRadius: 10,
+                      width: 20,
+                      height: 20,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>×</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: "row", justifyContent: "center", gap: spacing.md, marginTop: 4 }}>
+                  <TouchableOpacity
+                    onPress={() => moveImage(index, "left")}
+                    disabled={index === 0}
+                    style={{ opacity: index === 0 ? 0.25 : 1 }}
+                  >
+                    <Text style={{ fontSize: 13, color: colors.wine, fontWeight: "700" }}>‹</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => moveImage(index, "right")}
+                    disabled={index === imageUris.length - 1}
+                    style={{ opacity: index === imageUris.length - 1 ? 0.25 : 1 }}
+                  >
+                    <Text style={{ fontSize: 13, color: colors.wine, fontWeight: "700" }}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            {imageUris.length < 5 && (
               <TouchableOpacity
-                onPress={() => removeImage(uri)}
+                onPress={pickImages}
                 style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 4,
-                  backgroundColor: "rgba(0,0,0,0.6)",
-                  borderRadius: 10,
-                  width: 20,
-                  height: 20,
+                  width: 84,
+                  height: 84,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderStyle: "dashed",
+                  borderRadius: radius.sm,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>×</Text>
+                <Text style={{ fontSize: 20, color: colors.inkMuted }}>📷</Text>
               </TouchableOpacity>
-            </View>
-          ))}
-
-          {imageUris.length < 5 && (
-            <TouchableOpacity
-              onPress={pickImages}
-              style={{
-                width: 100,
-                height: 100,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderStyle: "dashed",
-                borderRadius: radius.sm,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: colors.inkMuted, fontSize: 24 }}>+</Text>
-              <Text style={{ color: colors.inkMuted, fontSize: 11 }}>Add photo</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
-
-      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Title</Text>
-      <TextInput
-        placeholder="e.g. Blue Denim Jacket"
-        placeholderTextColor={colors.inkMuted}
-        value={title}
-        onChangeText={setTitle}
-        style={{
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: radius.sm,
-          padding: 14,
-          marginBottom: spacing.md,
-          color: colors.ink,
-        }}
-      />
-
-      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Description</Text>
-      <TextInput
-        placeholder="Condition, fit, details"
-        placeholderTextColor={colors.inkMuted}
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        style={{
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: radius.sm,
-          padding: 14,
-          marginBottom: spacing.md,
-          color: colors.ink,
-          height: 80,
-        }}
-      />
-      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Brand</Text>
-      <TextInput
-        placeholder="e.g. Nike, Zara, Levi's"
-        placeholderTextColor={colors.inkMuted}
-        value={brand}
-        onChangeText={setBrand}
-        style={{
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: radius.sm,
-          padding: 14,
-          marginBottom: spacing.md,
-          color: colors.ink,
-        }}
-      />
-
-      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Category</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: spacing.md }}>
-        {CATEGORIES.map((c) => (
-          <TouchableOpacity
-            key={c}
-            onPress={() => setCategory(c)}
-            style={{
-              paddingVertical: 8,
-              paddingHorizontal: 14,
-              borderRadius: radius.sm,
-              borderWidth: 1,
-              borderColor: category === c ? colors.wine : colors.border,
-              backgroundColor: category === c ? colors.wine : colors.surface,
-            }}
-          >
-            <Text style={{ color: category === c ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
-              {c}
-            </Text>
-          </TouchableOpacity>
-        ))}
+            )}
+          </View>
+        </ScrollView>
+        {imageUris.length > 1 && (
+          <Text style={{ ...type.body, color: colors.inkMuted, fontSize: 12, marginTop: spacing.xs }}>
+            First photo is your cover image
+          </Text>
+        )}
       </View>
-      <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Price ($)</Text>
+
+      {/* About your item */}
+      <SectionLabel text="About your item" />
+      <View style={{ backgroundColor: colors.surface, marginBottom: spacing.lg }}>
+        <FieldRow label="Title">
           <TextInput
-            placeholder="0.00"
+            placeholder="e.g. Blue Denim Jacket"
             placeholderTextColor={colors.inkMuted}
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="decimal-pad"
-            style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: radius.sm,
-              padding: 14,
-              color: colors.ink,
-            }}
+            value={title}
+            onChangeText={setTitle}
+            style={fieldInputStyle}
           />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Size</Text>
+        </FieldRow>
+        <FieldRow label="Description" last>
+          <TextInput
+            placeholder="Condition, fit, details"
+            placeholderTextColor={colors.inkMuted}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            style={[fieldInputStyle, { minHeight: 60 }]}
+          />
+        </FieldRow>
+      </View>
+
+      {/* Item details */}
+      <SectionLabel text="Item details" />
+      <View style={{ backgroundColor: colors.surface, marginBottom: spacing.lg }}>
+        <FieldRow label="Brand">
+          <TextInput
+            placeholder="Nike, Zara, Levi's..."
+            placeholderTextColor={colors.inkMuted}
+            value={brand}
+            onChangeText={setBrand}
+            style={fieldInputStyle}
+          />
+        </FieldRow>
+        <FieldRow label="Size">
           <TextInput
             placeholder="M, 9, etc."
             placeholderTextColor={colors.inkMuted}
             value={size}
             onChangeText={setSize}
-            style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: radius.sm,
-              padding: 14,
-              color: colors.ink,
-            }}
+            style={fieldInputStyle}
           />
+        </FieldRow>
+        <FieldRow label="Color">
+          <TextInput
+            placeholder="e.g. Turquoise, Black"
+            placeholderTextColor={colors.inkMuted}
+            value={color}
+            onChangeText={setColor}
+            style={fieldInputStyle}
+          />
+        </FieldRow>
+
+        <View style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
+          <Text style={{ ...type.body, color: colors.ink, marginBottom: spacing.sm }}>Category</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {CATEGORIES.map((c) => (
+              <TouchableOpacity
+                key={c}
+                onPress={() => setCategory(c)}
+                style={{
+                  paddingVertical: 7,
+                  paddingHorizontal: 14,
+                  borderRadius: 999,
+                  backgroundColor: category === c ? colors.wine : colors.background,
+                }}
+              >
+                <Text style={{ color: category === c ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
+                  {c}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
+
+        <View style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
+          <Text style={{ ...type.body, color: colors.ink, marginBottom: spacing.sm }}>Condition</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {CONDITIONS.map((c) => (
+              <TouchableOpacity
+                key={c}
+                onPress={() => setCondition(c)}
+                style={{
+                  paddingVertical: 7,
+                  paddingHorizontal: 14,
+                  borderRadius: 999,
+                  backgroundColor: condition === c ? colors.wine : colors.background,
+                }}
+              >
+                <Text style={{ color: condition === c ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
+                  {c}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* Pricing */}
+      <SectionLabel text="Pricing" />
+      <View style={{ backgroundColor: colors.surface, marginBottom: spacing.xl }}>
+        <FieldRow label="Price" last>
+          <TextInput
+            placeholder="$0.00"
+            placeholderTextColor={colors.inkMuted}
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="decimal-pad"
+            style={fieldInputStyle}
+          />
+        </FieldRow>
       </View>
 
       <TouchableOpacity
@@ -303,15 +333,46 @@ export default function CreateItemScreen() {
         disabled={submitting}
         style={{
           backgroundColor: colors.wine,
-          padding: 15,
-          borderRadius: radius.sm,
+          padding: 16,
+          borderRadius: 999,
+          marginHorizontal: spacing.lg,
           opacity: submitting ? 0.6 : 1,
         }}
       >
         <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-          {submitting ? "Listing..." : "List item"}
+          {submitting ? "Listing..." : "Upload"}
         </Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
+
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <Text style={{ ...type.label, color: colors.inkMuted, marginLeft: spacing.lg, marginBottom: spacing.xs }}>
+      {text}
+    </Text>
+  );
+}
+
+function FieldRow({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <View
+      style={{
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: colors.border,
+      }}
+    >
+      <Text style={{ ...type.body, color: colors.ink, marginBottom: 4, fontSize: 13 }}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
+const fieldInputStyle = {
+  fontSize: 15,
+  color: colors.ink,
+  paddingVertical: 4,
+};

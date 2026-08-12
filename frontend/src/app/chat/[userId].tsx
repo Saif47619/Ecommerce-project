@@ -13,11 +13,11 @@ import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 
 export default function ChatScreen() {
-  const { userId, itemId } = useLocalSearchParams();
+  const { userId, itemId, offerMode: offerModeParam } = useLocalSearchParams();
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const [offerMode, setOfferMode] = useState(false);
+  const [offerMode, setOfferMode] = useState(offerModeParam === "true");
   const [offerPrice, setOfferPrice] = useState("");
   const scrollRef = useRef<ScrollView>(null);
 

@@ -28,6 +28,8 @@ class ItemCreate(BaseModel):
     category: Optional[str] = None
     image_url: Optional[str] = None
     store_id: int
+    condition: Optional[str] = None
+    color: Optional[str] = None
     brand: Optional[str] = None
 
 
@@ -37,6 +39,8 @@ class ItemUpdate(BaseModel):
     price: float
     size: Optional[str] = None
     category: Optional[str] = None
+    condition: Optional[str] = None
+    color: Optional[str] = None
     brand: Optional[str] = None
     image_url: Optional[str] = None
 
