@@ -165,18 +165,46 @@ export default function HomeScreen() {
       {/* Feed */}
       <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xl, maxWidth: 900, width: "100%", alignSelf: "center" }}>
         {!user && (
-          <View style={{ backgroundColor: colors.wine, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg }}>
-            <Text style={{ ...type.h1, color: colors.white, fontSize: 24, marginBottom: spacing.xs }}>
-              Ready to declutter{"\n"}your closet?
-            </Text>
-            <Text style={{ ...type.body, color: "#E8D8DC", marginBottom: spacing.md }}>
-              Give your clothes a second life — and make some money doing it.
-            </Text>
-            <Link href="/signup" asChild>
-              <TouchableOpacity style={{ backgroundColor: colors.white, paddingVertical: 12, borderRadius: 999, alignSelf: "flex-start", paddingHorizontal: 24 }}>
-                <Text style={{ color: colors.wine, textAlign: "center", fontWeight: "700" }}>Sell now</Text>
+          <View
+            style={{
+              height: 280,
+              borderRadius: radius.lg,
+              overflow: "hidden",
+              marginBottom: spacing.lg,
+              backgroundColor: colors.wineDark,
+              justifyContent: "center",
+              position: "relative",
+            }}
+          >
+            <View
+              style={{
+                position: "absolute",
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: colors.wine,
+                opacity: 0.9,
+              }}
+            />
+            <View
+              style={{
+                backgroundColor: colors.white,
+                borderRadius: radius.lg,
+                padding: spacing.lg,
+                marginLeft: spacing.md,
+                maxWidth: 260,
+              }}
+            >
+              <Text style={{ ...type.h1, color: colors.ink, fontSize: 22, marginBottom: spacing.sm }}>
+                Ready to declutter{"\n"}your closet?
+              </Text>
+              <Link href="/signup" asChild>
+                <TouchableOpacity style={{ backgroundColor: colors.wine, paddingVertical: 12, borderRadius: 999, marginBottom: spacing.xs }}>
+                  <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700" }}>Sell now</Text>
+                </TouchableOpacity>
+              </Link>
+              <TouchableOpacity>
+                <Text style={{ color: colors.wine, textAlign: "center", fontWeight: "600", fontSize: 13 }}>Learn how it works</Text>
               </TouchableOpacity>
-            </Link>
+            </View>
           </View>
         )}
 
