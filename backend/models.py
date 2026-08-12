@@ -57,7 +57,9 @@ class Item(Base):
     is_sold = Column(Boolean, default=False)
     store_id = Column(Integer, ForeignKey("stores.id"), nullable=False)
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-
+    condition = Column(String, nullable=True)
+    color = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
     store = relationship("Store", back_populates="items")
 
 
