@@ -4,6 +4,8 @@ import { Link, useFocusEffect } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
+const heroImage = require("../../assets/hero-banner.png");
+
 
 export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
@@ -163,34 +165,31 @@ export default function HomeScreen() {
       </View>
 
       {/* Feed */}
-      <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xl, maxWidth: 900, width: "100%", alignSelf: "center" }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xl }}>
         {!user && (
           <View
             style={{
-              height: 280,
-              borderRadius: radius.lg,
+              height: 500,
               overflow: "hidden",
               marginBottom: spacing.lg,
-              backgroundColor: colors.wineDark,
               justifyContent: "center",
               position: "relative",
+              width: "100%",
             }}
           >
-            <View
-              style={{
-                position: "absolute",
-                top: 0, left: 0, right: 0, bottom: 0,
-                backgroundColor: colors.wine,
-                opacity: 0.9,
-              }}
+            <Image
+              source={heroImage}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+              resizeMode="cover"
             />
             <View
               style={{
                 backgroundColor: colors.white,
                 borderRadius: radius.lg,
                 padding: spacing.lg,
-                marginLeft: spacing.md,
+                marginLeft: spacing.lg,
                 maxWidth: 260,
+                ...cardShadow,
               }}
             >
               <Text style={{ ...type.h1, color: colors.ink, fontSize: 22, marginBottom: spacing.sm }}>
@@ -208,79 +207,82 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {user && (
-          <Link href="/create-item" asChild>
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.wine,
-                borderRadius: radius.lg,
-                padding: spacing.md,
-                marginBottom: spacing.lg,
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <View>
-                <Text style={{ ...type.h2, color: colors.white }}>Got more to sell?</Text>
-                <Text style={{ ...type.body, color: "#E8D8DC" }}>List another piece</Text>
-              </View>
-              <Text style={{ ...type.h1, color: colors.white }}>+</Text>
-            </TouchableOpacity>
-          </Link>
-        )}
-
-        <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
-          {selectedCategory ? selectedCategory : search ? `Results for "${search}"` : "Just listed"}
-          {items.length > 0 ? `   ${items.length} ${items.length === 1 ? "item" : "items"}` : ""}
-        </Text>
-
-        {items.length === 0 && (
-          <View style={{ paddingVertical: spacing.xl, alignItems: "center" }}>
-            <Text style={{ fontSize: 40, marginBottom: spacing.sm }}>🔍</Text>
-            <Text style={{ ...type.h2, color: colors.ink, marginBottom: 4 }}>Nothing here yet</Text>
-            <Text style={{ ...type.body, color: colors.inkMuted, textAlign: "center" }}>
-              {selectedCategory ? `No items in ${selectedCategory} right now.` : "Check back soon, or list something yourself."}
-            </Text>
-          </View>
-        )}
-
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md, rowGap: spacing.lg }}>
-          {items.map((item) => (
-            <Link key={item.id} href={`/item/${item.id}` as any} asChild>
-              <TouchableOpacity style={{ width: "47.5%" }}>
-                <View style={{ width: "100%", aspectRatio: 0.85, backgroundColor: colors.border, borderRadius: radius.md, overflow: "hidden", marginBottom: spacing.xs }}>
-                  {item.image_url ? (
-                    <Image source={{ uri: `${API_URL}${item.image_url}` }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                  ) : (
-                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
-                    </View>
-                  )}
-                  {item.is_sold && (
-                    <View style={{ position: "absolute", top: spacing.xs, left: spacing.xs, backgroundColor: "rgba(43,30,34,0.75)", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6 }}>
-                      <Text style={{ color: colors.white, fontSize: 10, fontWeight: "700" }}>SOLD</Text>
-                    </View>
-                  )}
-                  {item.photo_count > 1 && (
-                    <View style={{ position: "absolute", bottom: spacing.xs, right: spacing.xs, backgroundColor: "rgba(43,30,34,0.75)", paddingVertical: 2, paddingHorizontal: 7, borderRadius: 6 }}>
-                      <Text style={{ color: colors.white, fontSize: 10, fontWeight: "700" }}>1/{item.photo_count}</Text>
-                    </View>
-                  )}
+        <View style={{ paddingHorizontal: spacing.md, maxWidth: 900, width: "100%", alignSelf: "center" }}>
+          {user && (
+            <Link href="/create-item" asChild>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.wine,
+                  borderRadius: radius.lg,
+                  padding: spacing.md,
+                  marginTop: spacing.md,
+                  marginBottom: spacing.lg,
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <View>
+                  <Text style={{ ...type.h2, color: colors.white }}>Got more to sell?</Text>
+                  <Text style={{ ...type.body, color: "#E8D8DC" }}>List another piece</Text>
                 </View>
-
-                {item.brand && (
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: colors.wine, textTransform: "uppercase", letterSpacing: 0.3 }}>
-                    {item.brand}
-                  </Text>
-                )}
-                <Text style={{ fontSize: 13, color: colors.inkMuted, marginTop: 1 }} numberOfLines={1}>
-                  {item.title}{item.size ? ` · Size ${item.size}` : ""}
-                </Text>
-                <Text style={{ ...type.price, color: colors.ink, marginTop: 3 }}>${item.price}</Text>
+                <Text style={{ ...type.h1, color: colors.white }}>+</Text>
               </TouchableOpacity>
             </Link>
-          ))}
+          )}
+
+          <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
+            {selectedCategory ? selectedCategory : search ? `Results for "${search}"` : "Just listed"}
+            {items.length > 0 ? `   ${items.length} ${items.length === 1 ? "item" : "items"}` : ""}
+          </Text>
+
+          {items.length === 0 && (
+            <View style={{ paddingVertical: spacing.xl, alignItems: "center" }}>
+              <Text style={{ fontSize: 40, marginBottom: spacing.sm }}>🔍</Text>
+              <Text style={{ ...type.h2, color: colors.ink, marginBottom: 4 }}>Nothing here yet</Text>
+              <Text style={{ ...type.body, color: colors.inkMuted, textAlign: "center" }}>
+                {selectedCategory ? `No items in ${selectedCategory} right now.` : "Check back soon, or list something yourself."}
+              </Text>
+            </View>
+          )}
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md, rowGap: spacing.lg }}>
+            {items.map((item) => (
+              <Link key={item.id} href={`/item/${item.id}` as any} asChild>
+                <TouchableOpacity style={{ width: "47.5%" }}>
+                  <View style={{ width: "100%", aspectRatio: 0.85, backgroundColor: colors.border, borderRadius: radius.md, overflow: "hidden", marginBottom: spacing.xs }}>
+                    {item.image_url ? (
+                      <Image source={{ uri: `${API_URL}${item.image_url}` }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
+                      </View>
+                    )}
+                    {item.is_sold && (
+                      <View style={{ position: "absolute", top: spacing.xs, left: spacing.xs, backgroundColor: "rgba(43,30,34,0.75)", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6 }}>
+                        <Text style={{ color: colors.white, fontSize: 10, fontWeight: "700" }}>SOLD</Text>
+                      </View>
+                    )}
+                    {item.photo_count > 1 && (
+                      <View style={{ position: "absolute", bottom: spacing.xs, right: spacing.xs, backgroundColor: "rgba(43,30,34,0.75)", paddingVertical: 2, paddingHorizontal: 7, borderRadius: 6 }}>
+                        <Text style={{ color: colors.white, fontSize: 10, fontWeight: "700" }}>1/{item.photo_count}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {item.brand && (
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: colors.wine, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                      {item.brand}
+                    </Text>
+                  )}
+                  <Text style={{ fontSize: 13, color: colors.inkMuted, marginTop: 1 }} numberOfLines={1}>
+                    {item.title}{item.size ? ` · Size ${item.size}` : ""}
+                  </Text>
+                  <Text style={{ ...type.price, color: colors.ink, marginTop: 3 }}>${item.price}</Text>
+                </TouchableOpacity>
+              </Link>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </View>
