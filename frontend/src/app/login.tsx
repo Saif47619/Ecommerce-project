@@ -3,7 +3,7 @@ import { View, Text, TextInput, Alert, TouchableOpacity } from "react-native";
 import { router, Link } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
-import { colors, spacing, radius, type } from "../constants/reloop-theme";
+import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -38,66 +38,75 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.lg, justifyContent: "center" }}>
-      <Text style={{ ...type.brand, color: colors.ink, textAlign: "center", marginBottom: spacing.xs }}>
-        Reloop
-      </Text>
-      <Text style={{ ...type.body, color: colors.inkMuted, textAlign: "center", marginBottom: spacing.xl }}>
-        Log in to your account
-      </Text>
-
-      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Email</Text>
-      <TextInput
-        placeholder="you@example.com"
-        placeholderTextColor={colors.inkMuted}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        style={{
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: radius.sm,
-          padding: 14,
-          marginBottom: spacing.md,
-          color: colors.ink,
-        }}
-      />
-
-      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Password</Text>
-      <TextInput
-        placeholder="••••••••"
-        placeholderTextColor={colors.inkMuted}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: radius.sm,
-          padding: 14,
-          marginBottom: spacing.lg,
-          color: colors.ink,
-        }}
-      />
-
-      <TouchableOpacity
-        onPress={handleLogin}
-        style={{ backgroundColor: colors.wine, padding: 15, borderRadius: radius.sm }}
-      >
-        <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-          Log in
+    <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", padding: spacing.lg }}>
+      <View style={{ maxWidth: 380, width: "100%", alignSelf: "center" }}>
+        <Text style={{ ...type.brand, color: colors.wine, textAlign: "center", fontSize: 32, marginBottom: 4 }}>
+          Reloop
         </Text>
-      </TouchableOpacity>
+        <Text style={{ ...type.body, color: colors.inkMuted, textAlign: "center", marginBottom: spacing.xl }}>
+          Log in to your account
+        </Text>
 
-      <Link href="/signup" asChild>
-        <TouchableOpacity style={{ marginTop: spacing.lg }}>
-          <Text style={{ color: colors.wine, textAlign: "center", fontWeight: "600" }}>
-            Don't have an account? Sign up
-          </Text>
-        </TouchableOpacity>
-      </Link>
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: radius.lg,
+            padding: spacing.lg,
+            ...cardShadow,
+          }}
+        >
+          <Text style={{ fontSize: 12, fontWeight: "600", color: colors.ink, marginBottom: 6 }}>Email</Text>
+          <TextInput
+            placeholder="you@example.com"
+            placeholderTextColor={colors.inkMuted}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            style={{
+              backgroundColor: colors.background,
+              borderRadius: radius.sm,
+              padding: 14,
+              marginBottom: spacing.md,
+              color: colors.ink,
+              fontSize: 15,
+            }}
+          />
+
+          <Text style={{ fontSize: 12, fontWeight: "600", color: colors.ink, marginBottom: 6 }}>Password</Text>
+          <TextInput
+            placeholder="••••••••"
+            placeholderTextColor={colors.inkMuted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={{
+              backgroundColor: colors.background,
+              borderRadius: radius.sm,
+              padding: 14,
+              marginBottom: spacing.lg,
+              color: colors.ink,
+              fontSize: 15,
+            }}
+          />
+
+          <TouchableOpacity
+            onPress={handleLogin}
+            style={{ backgroundColor: colors.wine, padding: 15, borderRadius: 999 }}
+          >
+            <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+              Log in
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Link href="/signup" asChild>
+          <TouchableOpacity style={{ marginTop: spacing.lg }}>
+            <Text style={{ color: colors.wine, textAlign: "center", fontWeight: "600" }}>
+              Don't have an account? Sign up
+            </Text>
+          </TouchableOpacity>
+        </Link>
+      </View>
     </View>
   );
 }
