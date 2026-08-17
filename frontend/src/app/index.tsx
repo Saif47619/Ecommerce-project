@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput } from "react-native";
-import { Link, useFocusEffect } from "expo-router";
+import { Link, useFocusEffect, router } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
@@ -129,39 +129,6 @@ export default function HomeScreen() {
             ))}
           </View>
         </ScrollView>
-
-        {/* Account dropdown */}
-        {menuOpen && user && (
-          <View
-            style={{
-              position: "absolute",
-              top: 90,
-              right: spacing.md,
-              width: 200,
-              backgroundColor: colors.surface,
-              borderRadius: radius.md,
-              paddingVertical: spacing.xs,
-              zIndex: 20,
-              ...cardShadow,
-            }}
-          >
-            <Text style={{ color: colors.inkMuted, fontSize: 12, paddingHorizontal: spacing.md, paddingVertical: 6 }}>
-              Hi, {user.name}
-            </Text>
-            <MenuLink href="/profile" label="Profile" onPress={() => setMenuOpen(false)} />
-            <MenuLink href="/manage-store" label="My Store" onPress={() => setMenuOpen(false)} />
-            <MenuLink href="/inbox" label="Inbox" onPress={() => setMenuOpen(false)} />
-            <TouchableOpacity
-              onPress={() => {
-                setMenuOpen(false);
-                logout();
-              }}
-              style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}
-            >
-              <Text style={{ color: colors.inkMuted, fontSize: 14 }}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
 
       {/* Feed */}
@@ -169,7 +136,7 @@ export default function HomeScreen() {
         {!user && (
           <View
             style={{
-              height: 500,
+              height: 480,
               overflow: "hidden",
               marginBottom: spacing.lg,
               justifyContent: "center",
@@ -285,17 +252,54 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Account dropdown */}
+      {menuOpen && user && (
+        <View
+          style={{
+            position: "absolute",
+            top: 90,
+            right: spacing.md,
+            width: 200,
+            backgroundColor: colors.surface,
+            borderRadius: radius.md,
+            paddingVertical: spacing.xs,
+            zIndex: 20,
+            ...cardShadow,
+          }}
+        >
+          <Text style={{ color: colors.inkMuted, fontSize: 12, paddingHorizontal: spacing.md, paddingVertical: 6 }}>
+            Hi, {user.name}
+          </Text>
+          <MenuLink href="/profile" label="Profile" onPress={() => setMenuOpen(false)} />
+          <MenuLink href="/manage-store" label="My Store" onPress={() => setMenuOpen(false)} />
+          <MenuLink href="/inbox" label="Inbox" onPress={() => setMenuOpen(false)} />
+          <TouchableOpacity
+            onPress={() => {
+              setMenuOpen(false);
+              logout();
+            }}
+            style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}
+          >
+            <Text style={{ color: colors.inkMuted, fontSize: 14 }}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
 
 function MenuLink({ href, label, onPress }: { href: string; label: string; onPress: () => void }) {
   return (
-    <Link href={href as any} asChild>
-      <TouchableOpacity onPress={onPress} style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}>
-        <Text style={{ color: colors.ink, fontSize: 14, fontWeight: "600" }}>{label}</Text>
-      </TouchableOpacity>
-    </Link>
+    <TouchableOpacity
+      onPress={() => {
+        onPress();
+        router.push(href as any);
+      }}
+      style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}
+    >
+      <Text style={{ color: colors.ink, fontSize: 14, fontWeight: "600" }}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 

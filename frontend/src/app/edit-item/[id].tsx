@@ -29,11 +29,17 @@ export default function EditItemScreen() {
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<any[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [isSold, setIsSold] = useState(false);
 
   const loadImages = () => {
     fetch(`${API_URL}/items/${id}/images`)
       .then((res) => res.json())
-      .then((data) => setImages(data))
+      .then((data) => {
+        setImages(data);
+        if (data.length > 0) {
+          setImageUrl(data[0].image_url);
+        }
+      })
       .catch(() => {});
   };
 
@@ -48,6 +54,7 @@ export default function EditItemScreen() {
         setBrand(item.brand || "");
         setCategory(item.category || "");
         setImageUrl(item.image_url || "");
+        setIsSold(item.is_sold || false);
       })
       .catch(() => Alert.alert("Error", "Could not load item"))
       .finally(() => setLoading(false));
@@ -150,7 +157,7 @@ export default function EditItemScreen() {
       }
 
       Alert.alert("Saved", "Your listing was updated");
-      router.replace("/manage-store");
+      router.replace(isSold ? "/manage-store" : "/");
     } catch (error) {
       Alert.alert("Error", "Could not connect to backend");
     } finally {

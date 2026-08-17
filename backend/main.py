@@ -512,4 +512,10 @@ def reorder_item_images(item_id: int, image_ids: list[int], db: Session = Depend
     db.commit()
 
     images = db.query(ItemImage).filter(ItemImage.item_id == item_id).order_by(ItemImage.position).all()
+
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if item and images:
+        item.image_url = images[0].image_url
+        db.commit()
+
     return images
