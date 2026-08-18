@@ -22,9 +22,15 @@ export default function EditItemScreen() {
   const [size, setSize] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
+  const [condition, setCondition] = useState("");
+  const [color, setColor] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
+  const CONDITIONS = ["New with tags", "Like new", "Good", "Fair"];
+  const BRANDS = ["Nike", "Adidas", "Zara", "H&M", "Levi's", "Puma", "Gucci", "Unbranded", "Other"];
+  const [showCustomBrand, setShowCustomBrand] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<any[]>([]);
@@ -53,8 +59,14 @@ export default function EditItemScreen() {
         setSize(item.size || "");
         setBrand(item.brand || "");
         setCategory(item.category || "");
+        setCondition(item.condition || "");
+        setColor(item.color || "");
         setImageUrl(item.image_url || "");
         setIsSold(item.is_sold || false);
+
+        if (item.brand && !BRANDS.includes(item.brand)) {
+          setShowCustomBrand(true);
+        }
       })
       .catch(() => Alert.alert("Error", "Could not load item"))
       .finally(() => setLoading(false));
@@ -145,6 +157,8 @@ export default function EditItemScreen() {
           size,
           brand,
           category,
+          condition,
+          color,
           image_url: imageUrl,
         }),
       });
@@ -317,11 +331,58 @@ export default function EditItemScreen() {
       />
 
       <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Brand</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: showCustomBrand ? spacing.sm : spacing.md }}>
+        {BRANDS.map((b) => (
+          <TouchableOpacity
+            key={b}
+            onPress={() => {
+              if (b === "Other") {
+                setShowCustomBrand(true);
+                setBrand("");
+              } else {
+                setShowCustomBrand(false);
+                setBrand(b);
+              }
+            }}
+            style={{
+              paddingVertical: 7,
+              paddingHorizontal: 14,
+              borderRadius: 999,
+              backgroundColor: (b === "Other" ? showCustomBrand : brand === b) ? colors.wine : colors.surface,
+              borderWidth: 1,
+              borderColor: (b === "Other" ? showCustomBrand : brand === b) ? colors.wine : colors.border,
+            }}
+          >
+            <Text style={{ color: (b === "Other" ? showCustomBrand : brand === b) ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
+              {b}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {showCustomBrand && (
+        <TextInput
+          placeholder="Type brand name"
+          placeholderTextColor={colors.inkMuted}
+          value={brand}
+          onChangeText={setBrand}
+          style={{
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.sm,
+            padding: 14,
+            marginBottom: spacing.md,
+            color: colors.ink,
+          }}
+        />
+      )}
+
+      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Color</Text>
       <TextInput
-        placeholder="e.g. Nike, Zara, Levi's"
+        placeholder="e.g. Turquoise, Black"
         placeholderTextColor={colors.inkMuted}
-        value={brand}
-        onChangeText={setBrand}
+        value={color}
+        onChangeText={setColor}
         style={{
           backgroundColor: colors.surface,
           borderWidth: 1,
@@ -349,6 +410,28 @@ export default function EditItemScreen() {
             }}
           >
             <Text style={{ color: category === c ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
+              {c}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Condition</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: spacing.md }}>
+        {CONDITIONS.map((c) => (
+          <TouchableOpacity
+            key={c}
+            onPress={() => setCondition(c)}
+            style={{
+              paddingVertical: 8,
+              paddingHorizontal: 14,
+              borderRadius: radius.sm,
+              borderWidth: 1,
+              borderColor: condition === c ? colors.wine : colors.border,
+              backgroundColor: condition === c ? colors.wine : colors.surface,
+            }}
+          >
+            <Text style={{ color: condition === c ? colors.white : colors.ink, fontWeight: "600", fontSize: 13 }}>
               {c}
             </Text>
           </TouchableOpacity>
