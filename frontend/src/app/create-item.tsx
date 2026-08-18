@@ -29,6 +29,8 @@ export default function CreateItemScreen() {
 
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
   const CONDITIONS = ["New with tags", "Like new", "Good", "Fair"];
+  const BRANDS = ["Nike", "Adidas", "Zara", "H&M", "Levi's", "Puma", "Gucci", "Unbranded", "Other"];
+  const [showCustomBrand, setShowCustomBrand] = useState(false);
 
   const pickImages = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -240,15 +242,44 @@ export default function CreateItemScreen() {
       {/* Item details */}
       <SectionLabel text="Item details" />
       <View style={{ backgroundColor: colors.surface, marginBottom: spacing.lg }}>
-        <FieldRow label="Brand">
-          <TextInput
-            placeholder="Nike, Zara, Levi's..."
-            placeholderTextColor={colors.inkMuted}
-            value={brand}
-            onChangeText={setBrand}
-            style={fieldInputStyle}
-          />
-        </FieldRow>
+        <View style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Text style={{ ...type.body, color: colors.ink, marginBottom: spacing.sm }}>Brand</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: showCustomBrand ? spacing.sm : 0 }}>
+            {BRANDS.map((b) => (
+              <TouchableOpacity
+                key={b}
+                onPress={() => {
+                  if (b === "Other") {
+                    setShowCustomBrand(true);
+                    setBrand("");
+                  } else {
+                    setShowCustomBrand(false);
+                    setBrand(b);
+                  }
+                }}
+                style={{
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 999,
+                  backgroundColor: (b === "Other" ? showCustomBrand : brand === b) ? colors.wine : colors.background,
+                }}
+              >
+                <Text style={{ color: (b === "Other" ? showCustomBrand : brand === b) ? colors.white : colors.ink, fontWeight: "600", fontSize: 12 }}>
+                  {b}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {showCustomBrand && (
+            <TextInput
+              placeholder="Type brand name"
+              placeholderTextColor={colors.inkMuted}
+              value={brand}
+              onChangeText={setBrand}
+              style={fieldInputStyle}
+            />
+          )}
+        </View>
         <FieldRow label="Size">
           <TextInput
             placeholder="M, 9, etc."
