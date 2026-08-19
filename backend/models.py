@@ -17,6 +17,7 @@ class Message(Base):
     offer_price = Column(Float, nullable=True)
     offer_status = Column(String, nullable=True)  # "pending", "accepted", "declined"
     created_at = Column(DateTime, default=datetime.utcnow)
+    paid = Column(Boolean, default=False)
 
 
 class User(Base):

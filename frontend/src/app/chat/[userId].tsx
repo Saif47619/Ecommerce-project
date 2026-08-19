@@ -21,6 +21,10 @@ export default function ChatScreen() {
   const [offerPrice, setOfferPrice] = useState("");
   const scrollRef = useRef<ScrollView>(null);
 
+  const [paymentSheet, setPaymentSheet] = useState<{ messageId: number; amount: number; itemTitle: string | null } | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+
   const loadMessages = () => {
     if (!user) return;
     fetch(`${API_URL}/messages/thread/${user.id}/${userId}`)
@@ -95,6 +99,29 @@ export default function ChatScreen() {
     } catch (error) {
       console.log("Failed to respond:", error);
     }
+  };
+
+  const markPaid = async (messageId: number) => {
+    try {
+      await fetch(`${API_URL}/messages/${messageId}/mark-paid`, { method: "PUT" });
+      loadMessages();
+    } catch (error) {
+      console.log("Failed to mark paid:", error);
+    }
+  };
+
+  const openPaymentSheet = (messageId: number, amount: number, itemTitle: string | null) => {
+    setSelectedMethod(null);
+    setPaymentSheet({ messageId, amount, itemTitle });
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!paymentSheet || !selectedMethod) return;
+    setProcessing(true);
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    await markPaid(paymentSheet.messageId);
+    setProcessing(false);
+    setPaymentSheet(null);
   };
 
   if (!user) return null;
@@ -177,9 +204,29 @@ export default function ChatScreen() {
                 {m.offer_status === "pending" && isMine && (
                   <Text style={{ ...type.label, color: colors.inkMuted }}>Waiting for response...</Text>
                 )}
-                {m.offer_status === "accepted" && (
-                  <Text style={{ ...type.label, color: colors.sage }}>Accepted</Text>
+
+                {m.offer_status === "accepted" && !m.paid && isMine && (
+                  <View style={{ marginTop: spacing.xs }}>
+                    <Text style={{ ...type.label, color: colors.sage, marginBottom: spacing.xs }}>Accepted</Text>
+                    <TouchableOpacity
+                      onPress={() => openPaymentSheet(m.id, m.offer_price, m.item_title)}
+                      style={{ backgroundColor: colors.wine, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999 }}
+                    >
+                      <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13, textAlign: "center" }}>
+                        Pay now
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
+
+                {m.offer_status === "accepted" && !m.paid && !isMine && (
+                  <Text style={{ ...type.label, color: colors.sage }}>Accepted · Awaiting payment</Text>
+                )}
+
+                {m.offer_status === "accepted" && m.paid && (
+                  <Text style={{ ...type.label, color: colors.sage }}>✓ Paid</Text>
+                )}
+
                 {m.offer_status === "declined" && (
                   <Text style={{ ...type.label, color: colors.inkMuted }}>Declined</Text>
                 )}
@@ -297,6 +344,125 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {paymentSheet && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(34,26,28,0.5)",
+            justifyContent: "flex-end",
+            zIndex: 50,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: radius.lg,
+              borderTopRightRadius: radius.lg,
+              padding: spacing.lg,
+              maxWidth: 480,
+              width: "100%",
+              alignSelf: "center",
+            }}
+          >
+            <View style={{ width: 40, height: 4, backgroundColor: colors.border, borderRadius: 2, alignSelf: "center", marginBottom: spacing.md }} />
+
+            <Text style={{ fontSize: 20, fontWeight: "800", color: colors.ink, marginBottom: 2 }}>
+              Complete payment
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.inkMuted, marginBottom: spacing.md }}>
+              {paymentSheet.itemTitle ? `"${paymentSheet.itemTitle}"` : "Item"}
+            </Text>
+
+            <Text style={{ fontSize: 32, fontWeight: "800", color: colors.ink, marginBottom: spacing.lg }}>
+              ${paymentSheet.amount}
+            </Text>
+
+            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.inkMuted, marginBottom: spacing.sm, textTransform: "uppercase" }}>
+              Choose payment method
+            </Text>
+
+            <View style={{ gap: spacing.sm, marginBottom: spacing.lg }}>
+              <PaymentOption
+                label="JazzCash"
+                subtitle="Mobile wallet"
+                selected={selectedMethod === "jazzcash"}
+                onPress={() => setSelectedMethod("jazzcash")}
+              />
+              <PaymentOption
+                label="Easypaisa"
+                subtitle="Mobile wallet"
+                selected={selectedMethod === "easypaisa"}
+                onPress={() => setSelectedMethod("easypaisa")}
+              />
+              <PaymentOption
+                label="Credit / Debit Card"
+                subtitle="Visa, Mastercard"
+                selected={selectedMethod === "card"}
+                onPress={() => setSelectedMethod("card")}
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={handleConfirmPayment}
+              disabled={!selectedMethod || processing}
+              style={{
+                backgroundColor: colors.wine,
+                padding: 16,
+                borderRadius: 999,
+                opacity: !selectedMethod || processing ? 0.5 : 1,
+                marginBottom: spacing.sm,
+              }}
+            >
+              <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+                {processing ? "Processing..." : `Pay $${paymentSheet.amount}`}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setPaymentSheet(null)} disabled={processing}>
+              <Text style={{ color: colors.inkMuted, textAlign: "center", fontWeight: "600" }}>Cancel</Text>
+            </TouchableOpacity>
+
+            <Text style={{ fontSize: 11, color: colors.inkMuted, textAlign: "center", marginTop: spacing.md }}>
+              This is a demo payment. No real money is charged.
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
+  );
+}
+
+function PaymentOption({ label, subtitle, selected, onPress }: { label: string; subtitle: string; selected: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: spacing.md,
+        borderRadius: radius.md,
+        borderWidth: 2,
+        borderColor: selected ? colors.wine : colors.border,
+        backgroundColor: selected ? colors.background : colors.surface,
+      }}
+    >
+      <View>
+        <Text style={{ fontSize: 15, fontWeight: "700", color: colors.ink }}>{label}</Text>
+        <Text style={{ fontSize: 12, color: colors.inkMuted }}>{subtitle}</Text>
+      </View>
+      <View
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          borderWidth: 2,
+          borderColor: selected ? colors.wine : colors.border,
+          backgroundColor: selected ? colors.wine : "transparent",
+        }}
+      />
+    </TouchableOpacity>
   );
 }
