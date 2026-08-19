@@ -415,6 +415,7 @@ def get_thread(user_a: int, user_b: int, db: Session = Depends(get_db)):
             "text": m.text,
             "offer_price": m.offer_price,
             "offer_status": m.offer_status,
+            "paid": m.paid,
             "created_at": m.created_at,
         })
 
@@ -519,3 +520,18 @@ def reorder_item_images(item_id: int, image_ids: list[int], db: Session = Depend
         db.commit()
 
     return images
+
+
+
+@app.put("/messages/{message_id}/mark-paid")
+def mark_message_paid(message_id: int, db: Session = Depends(get_db)):
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if message.offer_status != "accepted":
+        raise HTTPException(status_code=400, detail="This offer hasn't been accepted yet")
+
+    message.paid = True
+    db.commit()
+    db.refresh(message)
+    return message
