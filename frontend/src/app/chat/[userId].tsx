@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import { useAuth } from "../../context/auth-context";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
@@ -137,6 +137,9 @@ export default function ChatScreen() {
           borderBottomColor: colors.border,
         }}
       >
+        <TouchableOpacity onPress={() => router.push("/inbox")} style={{ marginBottom: spacing.xs, alignSelf: "flex-start" }}>
+          <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 14 }}>← Inbox</Text>
+        </TouchableOpacity>
         <Text style={{ ...type.h1, color: colors.ink }}>Conversation</Text>
       </View>
 
