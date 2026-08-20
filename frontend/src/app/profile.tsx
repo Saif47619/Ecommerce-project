@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback } from "react";
 import { useAuth } from "../context/auth-context";
 import { API_URL } from "../lib/api";
-import { colors, spacing, radius, type } from "../constants/reloop-theme";
+import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,23 +51,45 @@ export default function ProfileScreen() {
   const totalEarnings = soldItems.reduce((sum, i) => sum + i.price, 0);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg }}>
-      <Text style={{ ...type.brand, color: colors.ink, marginTop: 40, marginBottom: spacing.lg }}>
-        Profile
-      </Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl }}>
+      <TouchableOpacity onPress={() => router.push("/")} style={{ marginTop: 40, marginBottom: spacing.sm, alignSelf: "flex-start" }}>
+        <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 14 }}>← Home</Text>
+      </TouchableOpacity>
+
+      <Text style={{ ...type.brand, color: colors.ink, marginBottom: spacing.lg }}>Profile</Text>
 
       <View
         style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.md,
           backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: radius.md,
+          borderRadius: radius.lg,
           padding: spacing.md,
-          marginBottom: spacing.md,
+          marginBottom: spacing.lg,
+          ...cardShadow,
         }}
       >
-        <Text style={{ ...type.label, color: colors.inkMuted }}>Name</Text>
-        <Text style={{ ...type.h2, color: colors.ink, marginBottom: spacing.sm }}>{user.name}</Text>
+        <View
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: colors.wine,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: colors.white, fontWeight: "700", fontSize: 22 }}>
+            {user.name?.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 18, fontWeight: "800", color: colors.ink }}>{user.name}</Text>
+          <TouchableOpacity onPress={logout}>
+            <Text style={{ color: colors.inkMuted, fontSize: 13, fontWeight: "600", marginTop: 2 }}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -77,10 +98,10 @@ export default function ProfileScreen() {
         <View
           style={{
             backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
             borderRadius: radius.md,
             padding: spacing.md,
+            marginBottom: spacing.lg,
+            ...cardShadow,
           }}
         >
           <Text style={{ ...type.body, color: colors.inkMuted }}>
@@ -93,45 +114,20 @@ export default function ProfileScreen() {
             Dashboard
           </Text>
 
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.md }}>
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.md,
-                padding: spacing.sm,
-              }}
-            >
-              <Text style={{ ...type.label, color: colors.inkMuted }}>Active</Text>
-              <Text style={{ ...type.h1, color: colors.ink }}>{activeItems.length}</Text>
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
+            <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.sm, ...cardShadow }}>
+              <Text style={{ fontSize: 11, color: colors.inkMuted, fontWeight: "600" }}>ACTIVE</Text>
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.ink }}>{activeItems.length}</Text>
             </View>
 
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.md,
-                padding: spacing.sm,
-              }}
-            >
-              <Text style={{ ...type.label, color: colors.inkMuted }}>Sold</Text>
-              <Text style={{ ...type.h1, color: colors.ink }}>{soldItems.length}</Text>
+            <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.sm, ...cardShadow }}>
+              <Text style={{ fontSize: 11, color: colors.inkMuted, fontWeight: "600" }}>SOLD</Text>
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.ink }}>{soldItems.length}</Text>
             </View>
 
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: colors.brass,
-                borderRadius: radius.md,
-                padding: spacing.sm,
-              }}
-            >
-              <Text style={{ ...type.label, color: colors.white }}>Earned</Text>
-              <Text style={{ ...type.h1, color: colors.white }}>${totalEarnings.toFixed(2)}</Text>
+            <View style={{ flex: 1, backgroundColor: colors.brass, borderRadius: radius.md, padding: spacing.sm }}>
+              <Text style={{ fontSize: 11, color: colors.white, fontWeight: "600" }}>EARNED</Text>
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.white }}>${totalEarnings.toFixed(2)}</Text>
             </View>
           </View>
 
@@ -140,7 +136,7 @@ export default function ProfileScreen() {
           </Text>
 
           {items.length === 0 && (
-            <Text style={{ ...type.body, color: colors.inkMuted }}>
+            <Text style={{ ...type.body, color: colors.inkMuted, marginBottom: spacing.lg }}>
               No items listed yet.
             </Text>
           )}
@@ -153,27 +149,26 @@ export default function ProfileScreen() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: radius.sm,
+                borderRadius: radius.md,
                 padding: spacing.sm,
                 marginBottom: spacing.xs,
+                ...cardShadow,
               }}
             >
               <View>
-                <Text style={{ ...type.h2, color: colors.ink }}>{item.title}</Text>
-                <Text style={{ ...type.body, color: colors.inkMuted }}>${item.price}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>{item.title}</Text>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>${item.price}</Text>
               </View>
 
               <View
                 style={{
                   paddingVertical: 4,
                   paddingHorizontal: 10,
-                  borderRadius: radius.sm,
-                  backgroundColor: item.is_sold ? colors.sage : colors.border,
+                  borderRadius: 999,
+                  backgroundColor: item.is_sold ? colors.sage : colors.background,
                 }}
               >
-                <Text style={{ ...type.label, color: item.is_sold ? colors.white : colors.inkMuted }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: item.is_sold ? colors.white : colors.inkMuted }}>
                   {item.is_sold ? "Sold" : "Active"}
                 </Text>
               </View>
@@ -183,19 +178,11 @@ export default function ProfileScreen() {
       )}
 
       <Text style={{ ...type.label, color: colors.inkMuted, marginTop: spacing.lg, marginBottom: spacing.sm }}>
-        My Purchases
+        My purchases
       </Text>
 
       {purchases.length === 0 ? (
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: radius.md,
-            padding: spacing.md,
-          }}
-        >
+        <View style={{ backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, ...cardShadow }}>
           <Text style={{ ...type.body, color: colors.inkMuted }}>
             You haven't bought anything yet.
           </Text>
@@ -209,15 +196,14 @@ export default function ProfileScreen() {
               justifyContent: "space-between",
               alignItems: "center",
               backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: radius.sm,
+              borderRadius: radius.md,
               padding: spacing.sm,
               marginBottom: spacing.xs,
+              ...cardShadow,
             }}
           >
-            <Text style={{ ...type.h2, color: colors.ink }}>{item.title}</Text>
-            <Text style={{ ...type.price, color: colors.brass }}>${item.price}</Text>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>{item.title}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>${item.price}</Text>
           </View>
         ))
       )}
