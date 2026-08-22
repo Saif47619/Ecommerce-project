@@ -30,24 +30,19 @@ export default function ManageStoreScreen() {
 
   useEffect(() => {
     if (!user) {
-      router.replace("/login");
-      return;
+      const timeout = setTimeout(() => router.replace("/login"), 0);
+      return () => clearTimeout(timeout);
     }
     load();
   }, [user]);
 
-  const handleDelete = (itemId: number, title: string) => {
-    Alert.alert("Delete item", `Remove "${title}"? This can't be undone.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await fetch(`${API_URL}/items/${itemId}`, { method: "DELETE" });
-          load();
-        },
-      },
-    ]);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await fetch(`${API_URL}/items/${deleteTarget.id}`, { method: "DELETE" });
+    setDeleteTarget(null);
+    load();
   };
 
   if (!user) return null;
@@ -79,7 +74,8 @@ export default function ManageStoreScreen() {
   const soldCount = items.filter((i) => i.is_sold).length;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl }}>
       <Link href="/" asChild>
         <TouchableOpacity style={{ marginTop: 40, marginBottom: spacing.sm, alignSelf: "flex-start" }}>
           <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 14 }}>← Home</Text>
@@ -175,7 +171,7 @@ export default function ManageStoreScreen() {
                 <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 12 }}>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => handleDelete(item.id, item.title)}
+                onPress={() => setDeleteTarget({ id: item.id, title: item.title })}
                 style={{ borderWidth: 1, borderColor: "#A32D2D", borderRadius: 999, paddingVertical: 5, paddingHorizontal: 12 }}
               >
                 <Text style={{ color: "#A32D2D", fontWeight: "700", fontSize: 12 }}>Delete</Text>
@@ -184,6 +180,55 @@ export default function ManageStoreScreen() {
           </View>
         </View>
       ))}
-    </ScrollView>
+
+      </ScrollView>
+
+    {deleteTarget && (
+      <View
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(34,26,28,0.5)",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 50,
+          padding: spacing.lg,
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: radius.lg,
+            padding: spacing.lg,
+            maxWidth: 360,
+            width: "100%",
+            ...cardShadow,
+          }}
+        >
+          <Text style={{ fontSize: 18, fontWeight: "800", color: colors.ink, marginBottom: 6 }}>
+            Delete item
+          </Text>
+          <Text style={{ fontSize: 14, color: colors.inkMuted, marginBottom: spacing.lg }}>
+            Remove "{deleteTarget.title}"? This can't be undone.
+          </Text>
+
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <TouchableOpacity
+              onPress={() => setDeleteTarget(null)}
+              style={{ flex: 1, padding: 13, borderRadius: 999, borderWidth: 1, borderColor: colors.border }}
+            >
+              <Text style={{ color: colors.ink, textAlign: "center", fontWeight: "700" }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={confirmDelete}
+              style={{ flex: 1, padding: 13, borderRadius: 999, backgroundColor: "#A32D2D" }}
+            >
+              <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700" }}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    )}
+    </View>
   );
 }

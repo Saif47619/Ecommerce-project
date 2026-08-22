@@ -4,6 +4,7 @@ import { Link, useFocusEffect, router } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
+import Fuse from "fuse.js";
 const heroImage = require("../../assets/hero-banner.png");
 
 
@@ -15,16 +16,32 @@ export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
 
+    const [allItems, setAllItems] = useState<any[]>([]);
+
   const loadItems = useCallback(() => {
     const params = new URLSearchParams();
-    if (search) params.append("search", search);
     if (selectedCategory) params.append("category", selectedCategory);
 
     fetch(`${API_URL}/items?${params.toString()}`)
       .then((response) => response.json())
-      .then((data) => setItems(data))
+      .then((data) => setAllItems(data))
       .catch((error) => console.log("ERROR:", error));
-  }, [search, selectedCategory]);
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (!search.trim()) {
+      setItems(allItems);
+      return;
+    }
+
+    const fuse = new Fuse(allItems, {
+      keys: ["title", "brand", "description", "category"],
+      threshold: 0.35,
+    });
+
+    const results = fuse.search(search);
+    setItems(results.map((r) => r.item));
+  }, [search, allItems]);
 
   useFocusEffect(
     useCallback(() => {
