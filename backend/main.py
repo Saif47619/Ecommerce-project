@@ -300,6 +300,12 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
+    db.query(ItemImage).filter(ItemImage.item_id == item_id).delete()
+
+    messages = db.query(Message).filter(Message.item_id == item_id).all()
+    for m in messages:
+        m.item_id = None
+
     db.delete(item)
     db.commit()
     return {"message": "Item deleted successfully"}
