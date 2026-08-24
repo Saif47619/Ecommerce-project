@@ -11,6 +11,7 @@ export default function ItemDetailScreen() {
   const [item, setItem] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
   const [otherItems, setOtherItems] = useState<any[]>([]);
+  const [similarItems, setSimilarItems] = useState<any[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
@@ -33,6 +34,11 @@ export default function ItemDetailScreen() {
     fetch(`${API_URL}/items/${id}/images`)
       .then((res) => res.json())
       .then((data) => setImages(data))
+      .catch(() => {});
+
+    fetch(`${API_URL}/items/${id}/similar`)
+      .then((res) => res.json())
+      .then((data) => setSimilarItems(data))
       .catch(() => {});
   };
 
@@ -186,6 +192,37 @@ export default function ItemDetailScreen() {
                         {other.condition || "Good"}
                       </Text>
                       <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>${other.price}</Text>
+                    </TouchableOpacity>
+                  </Link>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* You might also like */}
+          {similarItems.length > 0 && (
+            <View style={{ marginTop: spacing.xl }}>
+              <Text style={{ ...type.h2, color: colors.ink, marginBottom: spacing.sm }}>You might also like</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+                {similarItems.map((sim) => (
+                  <Link key={sim.id} href={`/item/${sim.id}` as any} asChild>
+                    <TouchableOpacity style={{ width: "23%", minWidth: 90 }}>
+                      <View style={{ width: "100%", aspectRatio: 0.9, backgroundColor: colors.border, borderRadius: radius.sm, overflow: "hidden", marginBottom: 6 }}>
+                        {sim.image_url ? (
+                          <Image source={{ uri: `${API_URL}${sim.image_url}` }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                        ) : (
+                          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ color: colors.inkMuted, fontSize: 10 }}>No photo</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.wine }} numberOfLines={1}>
+                        {sim.brand || "Unbranded"}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: colors.inkMuted, marginBottom: 2 }} numberOfLines={1}>
+                        {sim.title}
+                      </Text>
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>${sim.price}</Text>
                     </TouchableOpacity>
                   </Link>
                 ))}
