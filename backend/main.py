@@ -541,3 +541,27 @@ def mark_message_paid(message_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(message)
     return message
+
+
+
+@app.get("/items/{item_id}/similar")
+def get_similar_items(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    query = db.query(Item).filter(
+        Item.id != item_id,
+        Item.is_sold == False,
+        Item.store_id != item.store_id,
+    )
+
+    if item.category:
+        query = query.filter(Item.category == item.category)
+
+    if item.price:
+        low = item.price * 0.6
+        high = item.price * 1.6
+        query = query.filter(Item.price >= low, Item.price <= high)
+
+    return query.limit(6).all()
