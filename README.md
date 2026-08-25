@@ -1,217 +1,224 @@
-\# Reloop
+# Reloop
 
+Reloop is a Vinted-style marketplace for buying and selling secondhand clothing. It is a full-stack learning project built with Expo, React Native, FastAPI, PostgreSQL, and Google Gemini.
 
+## Features
 
-A mobile marketplace for buying and selling secondhand clothes — think Vinted. Built as an 8-week learning project covering the full software lifecycle: planning, feature-by-feature development, git workflow, testing, and shipping a working demo.
+- Email and password signup/login
+- Seller stores and item listings
+- Multiple photos per listing
+- Search and listing filters
+- Item condition, brand, colour, category, size, and price details
+- Gemini-powered listing descriptions from a clothing photo
+- Similar-item recommendations
+- Buyer and seller messaging
+- Offer acceptance and rejection
+- Mock purchase flow
+- Seller dashboard with active and sold listings
+- Responsive web and mobile interfaces
 
+## Tech stack
 
+### Frontend
 
-\## Stack
+- React Native
+- Expo
+- Expo Router
+- TypeScript
 
+### Backend
 
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Google Gen AI SDK
+- bcrypt
 
-\- \*\*Frontend:\*\* React Native (Expo, Expo Router)
+## Project structure
 
-\- \*\*Backend:\*\* FastAPI (Python)
+```text
+Ecommerce-project/
+├── backend/
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── ai_descriptions.py
+│   ├── requirements.txt
+│   └── tests/
+└── frontend/
+    ├── src/app/
+    ├── src/components/
+    ├── src/context/
+    ├── src/lib/
+    ├── assets/
+    ├── app.json
+    └── package.json
+```
 
-\- \*\*Database:\*\* PostgreSQL
+## Backend setup
 
+### 1. Create the PostgreSQL database
 
-
-\## Features
-
-
-
-\- Email/password signup and login (buyer or seller role)
-
-\- Sellers can create a store and list items with photos
-
-\- Home feed showing all listed items, with search
-
-\- Item detail page with description, size, price, and seller's store link
-
-\- Store page showing all items from one seller
-
-\- Mock "Buy" flow — marks an item sold and records the buyer (no real payment)
-
-\- Sellers can't buy their own listings
-
-\- Seller dashboard — active/sold counts and total earnings
-
-\- Profile screen showing account info
-
-
-
-\## Project structure
-
-
-\## Setup — Backend
-
-
-
-1\. Install PostgreSQL locally and create a database:
+Create a local PostgreSQL database named:
 
 ```sql
-
-&#x20;  CREATE DATABASE clothes\_marketplace;
-
+CREATE DATABASE clothes_marketplace;
 ```
 
-&#x20;  Update the connection string in `backend/database.py` if your username/password differ from the default.
+### 2. Create a Python virtual environment
 
-
-
-2\. Set up the Python environment:
-
-```bash
-
-&#x20;  cd backend
-
-&#x20;  python -m venv venv
-
-&#x20;  # Windows:
-
-&#x20;  .\\venv\\Scripts\\Activate.ps1
-
-&#x20;  # Mac/Linux:
-
-&#x20;  source venv/bin/activate
-
-
-
-&#x20;  pip install fastapi uvicorn sqlalchemy psycopg2-binary bcrypt python-multipart
-
+```powershell
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
+### 3. Configure backend environment variables
 
+Copy the example file:
 
-3\. Run the server:
-
-```bash
-
-&#x20;  python -m uvicorn main:app --reload --host 0.0.0.0
-
+```powershell
+Copy-Item .env.example .env
 ```
 
+Update the private `backend/.env` file:
 
+```env
+DB_USER=postgres
+DB_PASSWORD=your_postgres_password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=clothes_marketplace
 
-&#x20;  \*\*Important:\*\* the `--host 0.0.0.0` flag is required — without it, the API only accepts connections from `localhost`, and your phone/Expo app won't be able to reach it over the network.
-
-
-
-4\. Confirm it's running: open `http://localhost:8000/docs` — you should see the Swagger UI with all endpoints listed.
-
-
-
-\## Setup — Frontend
-
-
-
-1\. Install dependencies:
-
-```bash
-
-&#x20;  cd frontend
-
-&#x20;  npm install
-
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
+Create a Gemini API key through [Google AI Studio](https://aistudio.google.com/).
 
+Never commit or share the real `.env` file, database password, or Gemini API key.
 
-2\. \*\*Set your backend's IP address.\*\* Open `frontend/src/lib/api.ts` and update it to match your computer's current local network IP (not `localhost` — the phone/emulator needs your machine's actual LAN address):
+### 4. Start the backend
 
-```bash
-
-&#x20;  # Find your IP:
-
-&#x20;  ipconfig        # Windows — look for "IPv4 Address" under your active network adapter
-
-&#x20;  ifconfig        # Mac/Linux
-
+```powershell
+python -m uvicorn main:app --reload
 ```
 
-```typescript
+The API will run at `http://127.0.0.1:8000`.
 
-&#x20;  export const API\_URL = "http://YOUR\_IP\_HERE:8000";
+Useful URLs:
 
+- Health check: `http://127.0.0.1:8000/health`
+- Swagger API documentation: `http://127.0.0.1:8000/docs`
+
+For Expo Go on a physical phone, start the backend with:
+
+```powershell
+python -m uvicorn main:app --reload --host 0.0.0.0
 ```
 
-&#x20;  This changes every time you switch networks (home wifi, university wifi, hotspot) — if the app suddenly can't load data, this is the first thing to check.
+## Frontend setup
 
+### 1. Install dependencies
 
+Open another terminal:
 
-3\. Start the app:
-
-```bash
-
-&#x20;  npx expo start
-
+```powershell
+cd frontend
+npm install
 ```
 
-&#x20;  Scan the QR code with the \*\*Expo Go\*\* app on your phone, or press `w` to open in a browser.
+### 2. Configure the API URL
 
+Copy the example environment file:
 
-
-&#x20;  If your phone can't connect over normal wifi (firewall or network isolation issues), try:
-
-```bash
-
-&#x20;  npx expo start --tunnel
-
+```powershell
+Copy-Item .env.example .env
 ```
 
+For web development:
 
-
-\## Git workflow
-
-
-
-Every feature was built on its own branch and merged into `main`:
-
-```bash
-
-git checkout -b feature/name
-
-\# build, test, commit
-
-git checkout main
-
-git merge feature/name
-
-git push origin main
-
+```env
+EXPO_PUBLIC_API_URL=http://localhost:8000
 ```
 
+For Expo Go on a physical phone, replace `localhost` with the computer's LAN IP:
 
+```env
+EXPO_PUBLIC_API_URL=http://192.168.1.10:8000
+```
 
-\## Known issues / lessons learned
+The phone and computer must be connected to the same network.
 
+### 3. Start the frontend
 
+```powershell
+npx expo start
+```
 
-\- `passlib` (older password-hashing library) had a version incompatibility with newer `bcrypt` releases, causing signup to crash. Fixed by hashing passwords directly with `bcrypt` instead of going through `passlib`.
+Press `w` for the web app or scan the QR code with Expo Go.
 
-\- Hardcoding IP addresses across multiple files broke everything after switching development machines. Fixed by centralizing the backend URL into a single `frontend/src/lib/api.ts` file.
+## Gemini description generation
 
-\- `uvicorn` must be run with `--host 0.0.0.0`, or devices on the same network (like a phone running Expo Go) can't reach it.
+The listing form sends the cover photo and seller-provided item details to the backend. The backend calls Gemini and returns an editable description.
 
+The Gemini key remains on the backend and is never sent to the browser or mobile app. Generated descriptions should still be reviewed by the seller before publishing.
 
+Gemini free-tier usage is subject to Google's availability and rate limits.
 
-\## What's not included (by design)
+## Testing
 
+Run backend checks:
 
+```powershell
+cd backend
+.\venv\Scripts\python.exe -m py_compile main.py database.py ai_descriptions.py
+.\venv\Scripts\python.exe -m pytest tests -q
+```
 
-\- Real payments — "buying" is mocked, just marks an item sold
+Run frontend checks:
 
-\- OAuth/JWT — authentication is plain email + password, kept intentionally simple
+```powershell
+cd frontend
+npx tsc --noEmit
+npx expo export --platform web --output-dir dist
+```
 
-\- Advanced filters (size/price range) exist on the backend API but aren't wired into the UI yet
+## Security notes
 
+- Passwords are hashed with bcrypt.
+- Database credentials and API keys are loaded from ignored environment files.
+- New accounts receive a server-controlled internal role value.
+- Real secrets must never be placed in `.env.example`, committed to Git, or shared in screenshots.
 
+This remains a learning/demo application. It does not yet implement production authentication, authorization, sessions, JWTs, payment processing, cloud file storage, or database migrations.
 
-\## Screenshots
+## Known limitations
 
+- Purchases and payments are simulated.
+- Uploaded images are stored locally.
+- API requests are not protected by production-grade authentication.
+- Gemini availability depends on API quota and model availability.
+- Database schema changes are currently managed manually.
 
+## Git workflow
 
-\_Add screenshots here before final submission — home feed, item detail, seller dashboard, create-item flow.\_
+Development uses focused branches and pull requests:
 
+```powershell
+git switch main
+git pull --ff-only origin main
+git switch -c feature/your-feature
+```
+
+After testing:
+
+```powershell
+git add <files>
+git commit -m "Describe the change"
+git push -u origin feature/your-feature
+```
+
+Create a pull request into `main`, review the changes, merge it, then synchronize and delete the completed branch.
