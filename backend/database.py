@@ -1,15 +1,39 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import URL
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "postgresql://postgres:postgres123@localhost/clothes_marketplace"
 
-engine = create_engine(DATABASE_URL)
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+if not DB_PASSWORD:
+    raise RuntimeError(
+        "DB_PASSWORD is not configured in backend/.env"
+    )
+
+database_url = URL.create(
+    drivername="postgresql+psycopg2",
+    username=os.getenv("DB_USER", "postgres"),
+    password=DB_PASSWORD,
+    host=os.getenv("DB_HOST", "localhost"),
+    port=int(os.getenv("DB_PORT", "5432")),
+    database=os.getenv(
+        "DB_NAME",
+        "clothes_marketplace",
+    ),
+)
+
+engine = create_engine(database_url)
 
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engine
+    bind=engine,
 )
 
 Base = declarative_base()
