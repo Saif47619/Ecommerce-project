@@ -122,7 +122,7 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         name=user.name,
         email=user.email,
         password=hash_password(user.password),
-        role=user.role,
+        role="user",
     )
     db.add(new_user)
     db.commit()
@@ -132,7 +132,6 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         "id": new_user.id,
         "name": new_user.name,
         "email": new_user.email,
-        "role": new_user.role,
     }
 
 
@@ -146,7 +145,6 @@ def login(user: LoginRequest, db: Session = Depends(get_db)):
         "message": "Login successful",
         "user_id": existing_user.id,
         "name": existing_user.name,
-        "role": existing_user.role,
     }
 
 

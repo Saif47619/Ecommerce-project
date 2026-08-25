@@ -30,7 +30,7 @@ export default function LoginScreen() {
         return;
       }
 
-      login({ id: data.user_id, name: data.name, role: data.role });
+      login({ id: data.user_id, name: data.name });
       router.replace("/");
     } catch (error) {
       Alert.alert("Error", "Could not connect to backend");
