@@ -1,7 +1,9 @@
 import os
 import shutil
 import uuid
+from starlette.concurrency import run_in_threadpool
 from typing import Optional
+from fastapi import Form
 from fastapi import File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, HTTPException
@@ -9,6 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from models import User, Store, Item, Message, ItemImage
 from database import engine, SessionLocal, Base
+
+from ai_descriptions import (
+    AIConfigurationError,
+    AIGenerationError,
+    ListingDetails,
+    generate_listing_description,
+)
 
 from auth import hash_password, verify_password
 from schemas import (
@@ -53,6 +62,54 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.post("/ai/generate-description")
+async def generate_ai_description(
+    image: UploadFile = File(...),
+    title: str = Form(""),
+    category: str = Form(""),
+    brand: str = Form(""),
+    condition: str = Form(""),
+    color: str = Form(""),
+    size: str = Form(""),
+):
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Upload a valid image file")
+
+    image_bytes = await image.read(10 * 1024 * 1024 + 1)
+
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="The image file is empty")
+
+    if len(image_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=413,
+            detail="The image must be 10 MB or smaller",
+        )
+
+    try:
+        description, model = await run_in_threadpool(
+            generate_listing_description,
+            image_bytes,
+            image.content_type,
+            ListingDetails(
+                title=title,
+                category=category,
+                brand=brand,
+                condition=condition,
+                color=color,
+                size=size,
+            ),
+        )
+    except AIConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "description": description,
+        "model": model,
+    }
 
 
 @app.post("/signup")
