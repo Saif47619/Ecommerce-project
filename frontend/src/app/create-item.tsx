@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
   Image,
   ScrollView,
 } from "react-native";
@@ -13,6 +14,7 @@ import { router } from "expo-router";
 import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
+import { generateAiDescription } from "../lib/ai-description";
 
 export default function CreateItemScreen() {
   const { user } = useAuth();
@@ -26,6 +28,7 @@ export default function CreateItemScreen() {
   const [color, setColor] = useState("");
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
   const CONDITIONS = ["New with tags", "Like new", "Good", "Fair"];
@@ -62,6 +65,33 @@ export default function CreateItemScreen() {
     if (targetIndex < 0 || targetIndex >= newUris.length) return;
     [newUris[index], newUris[targetIndex]] = [newUris[targetIndex], newUris[index]];
     setImageUris(newUris);
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!imageUris[0]) {
+      Alert.alert("Photo required", "Add a clear cover photo before using the AI writer");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const generated = await generateAiDescription(imageUris[0], {
+        title,
+        category,
+        brand,
+        condition,
+        color,
+        size,
+      });
+      setDescription(generated);
+    } catch (error) {
+      Alert.alert(
+        "AI description unavailable",
+        error instanceof Error ? error.message : "Try again in a moment",
+      );
+    } finally {
+      setGeneratingDescription(false);
+    }
   };
 
   const handleCreateItem = async () => {
@@ -236,6 +266,30 @@ export default function CreateItemScreen() {
             multiline
             style={[fieldInputStyle, { minHeight: 60 }]}
           />
+          <TouchableOpacity
+            onPress={handleGenerateDescription}
+            disabled={generatingDescription || imageUris.length === 0}
+            style={{
+              alignSelf: "flex-start",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 7,
+              backgroundColor: colors.background,
+              borderRadius: 999,
+              paddingVertical: 8,
+              paddingHorizontal: 13,
+              marginTop: spacing.xs,
+              opacity: imageUris.length === 0 ? 0.45 : 1,
+            }}
+          >
+            {generatingDescription && <ActivityIndicator size="small" color={colors.wine} />}
+            <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 12 }}>
+              {generatingDescription ? "Writing with Gemini..." : "✦ Write with Gemini"}
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.inkMuted, fontSize: 11, marginTop: 6 }}>
+            Uses your cover photo and item details. Review the result before listing.
+          </Text>
         </FieldRow>
       </View>
 

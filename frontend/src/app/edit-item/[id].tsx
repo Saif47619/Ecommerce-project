@@ -13,6 +13,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
+import { generateAiDescription } from "../../lib/ai-description";
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams();
@@ -36,6 +37,7 @@ export default function EditItemScreen() {
   const [images, setImages] = useState<any[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [isSold, setIsSold] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   const loadImages = () => {
     fetch(`${API_URL}/items/${id}/images`)
@@ -136,6 +138,34 @@ export default function EditItemScreen() {
       Alert.alert("Error", "Could not upload photos");
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!imageUrl) {
+      Alert.alert("Photo required", "Add a clear cover photo before using the AI writer");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const coverImageUri = imageUrl.startsWith("http") ? imageUrl : `${API_URL}${imageUrl}`;
+      const generated = await generateAiDescription(coverImageUri, {
+        title,
+        category,
+        brand,
+        condition,
+        color,
+        size,
+      });
+      setDescription(generated);
+    } catch (error) {
+      Alert.alert(
+        "AI description unavailable",
+        error instanceof Error ? error.message : "Try again in a moment",
+      );
+    } finally {
+      setGeneratingDescription(false);
     }
   };
 
@@ -329,6 +359,30 @@ export default function EditItemScreen() {
           height: 80,
         }}
       />
+      <TouchableOpacity
+        onPress={handleGenerateDescription}
+        disabled={generatingDescription || !imageUrl}
+        style={{
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 7,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 999,
+          paddingVertical: 8,
+          paddingHorizontal: 13,
+          marginTop: -spacing.sm,
+          marginBottom: spacing.md,
+          opacity: imageUrl ? 1 : 0.45,
+        }}
+      >
+        {generatingDescription && <ActivityIndicator size="small" color={colors.wine} />}
+        <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 12 }}>
+          {generatingDescription ? "Writing with Gemini..." : "✦ Rewrite with Gemini"}
+        </Text>
+      </TouchableOpacity>
 
       <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Brand</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: showCustomBrand ? spacing.sm : spacing.md }}>
