@@ -19,6 +19,8 @@ from ai_descriptions import (
     generate_listing_description,
 )
 
+from ai_search import interpret_search_query
+
 from auth import hash_password, verify_password
 from schemas import (
     UserCreate,
@@ -28,6 +30,7 @@ from schemas import (
     ItemUpdate,
     MessageCreate,
     OfferResponse,
+    AISearchRequest,
 )
 
 app = FastAPI()
@@ -110,6 +113,25 @@ async def generate_ai_description(
         "description": description,
         "model": model,
     }
+
+@app.post("/ai/search")
+async def interpret_ai_search(request: AISearchRequest):
+    try:
+        intent, model = await run_in_threadpool(
+            interpret_search_query,
+            request.query,
+        )
+    except AIConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "query": request.query.strip(),
+        "intent": intent.model_dump(),
+        "model": model,
+    }
+
 
 
 @app.post("/signup")
@@ -215,6 +237,8 @@ def get_items(
     size: Optional[str] = None,
     category: Optional[str] = None,
     brand: Optional[str] = None,
+    condition: Optional[str] = None,
+    color: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     db: Session = Depends(get_db),
@@ -224,11 +248,15 @@ def get_items(
     if search:
         query = query.filter(Item.title.ilike(f"%{search}%"))
     if size:
-        query = query.filter(Item.size == size)
+        query = query.filter(Item.size.ilike(size))
     if category:
         query = query.filter(Item.category == category)
     if brand:
         query = query.filter(Item.brand.ilike(f"%{brand}%"))
+    if condition:
+        query = query.filter(Item.condition == condition)
+    if color:
+        query = query.filter(Item.color.ilike(f"%{color}%"))
     if min_price is not None:
         query = query.filter(Item.price >= min_price)
     if max_price is not None:
