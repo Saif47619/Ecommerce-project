@@ -401,9 +401,9 @@ export default function CreateItemScreen() {
       {/* Pricing */}
       <SectionLabel text="Pricing" />
       <View style={{ backgroundColor: colors.surface, marginBottom: spacing.xl }}>
-        <FieldRow label="Price" last>
+        <FieldRow label="Price (Rs)" last>
           <TextInput
-            placeholder="$0.00"
+            placeholder="Rs 0"
             placeholderTextColor={colors.inkMuted}
             value={price}
             onChangeText={setPrice}

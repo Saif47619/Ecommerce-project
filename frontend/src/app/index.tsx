@@ -5,6 +5,7 @@ import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
 import Fuse from "fuse.js";
+import { formatPKR } from "../lib/currency";
 const heroImage = require("../../assets/hero-banner.png");
 
 
@@ -262,7 +263,7 @@ export default function HomeScreen() {
                   <Text style={{ fontSize: 13, color: colors.inkMuted, marginTop: 1 }} numberOfLines={1}>
                     {item.title}{item.size ? ` · Size ${item.size}` : ""}
                   </Text>
-                  <Text style={{ ...type.price, color: colors.ink, marginTop: 3 }}>${item.price}</Text>
+                  <Text style={{ ...type.price, color: colors.ink, marginTop: 3 }}>{formatPKR(item.price)}</Text>
                 </TouchableOpacity>
               </Link>
             ))}

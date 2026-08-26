@@ -4,6 +4,7 @@ import { router, Link } from "expo-router";
 import { useAuth } from "../context/auth-context";
 import { API_URL } from "../lib/api";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
+import { formatPKR } from "../lib/currency";
 
 export default function ManageStoreScreen() {
   const { user } = useAuth();
@@ -161,7 +162,7 @@ export default function ManageStoreScreen() {
                 </Text>
               </View>
             </View>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass, marginBottom: 6 }}>${item.price}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass, marginBottom: 6 }}>{formatPKR(item.price)}</Text>
 
             <View style={{ flexDirection: "row", gap: spacing.xs }}>
               <TouchableOpacity

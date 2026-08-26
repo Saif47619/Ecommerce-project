@@ -11,6 +11,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { useAuth } from "../../context/auth-context";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
+import { formatPKR } from "../../lib/currency";
 
 export default function ChatScreen() {
   const { userId, itemId, offerMode: offerModeParam } = useLocalSearchParams();
@@ -76,7 +77,7 @@ export default function ChatScreen() {
           sender_id: user.id,
           receiver_id: Number(userId),
           item_id: itemId ? Number(itemId) : null,
-          text: `Offered $${price}`,
+          text: `Offered ${formatPKR(price)}`,
           offer_price: price,
         }),
       });
@@ -174,7 +175,7 @@ export default function ChatScreen() {
                   </Text>
                 )}
                 <Text style={{ ...type.h1, color: colors.ink, marginVertical: 4 }}>
-                  ${m.offer_price}
+                  {formatPKR(m.offer_price)}
                 </Text>
 
                 {m.offer_status === "pending" && !isMine && (
@@ -269,7 +270,7 @@ export default function ChatScreen() {
             alignItems: "center",
           }}
         >
-          <Text style={{ ...type.h2, color: colors.brass }}>$</Text>
+          <Text style={{ ...type.h2, color: colors.brass }}>Rs</Text>
           <TextInput
             value={offerPrice}
             onChangeText={setOfferPrice}
@@ -379,7 +380,7 @@ export default function ChatScreen() {
             </Text>
 
             <Text style={{ fontSize: 32, fontWeight: "800", color: colors.ink, marginBottom: spacing.lg }}>
-              ${paymentSheet.amount}
+              {formatPKR(paymentSheet.amount)}
             </Text>
 
             <Text style={{ fontSize: 12, fontWeight: "700", color: colors.inkMuted, marginBottom: spacing.sm, textTransform: "uppercase" }}>
@@ -419,7 +420,9 @@ export default function ChatScreen() {
               }}
             >
               <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-                {processing ? "Processing..." : `Pay $${paymentSheet.amount}`}
+                {processing
+                   ? "Processing..."
+                   : `Pay ${formatPKR(paymentSheet.amount)}`}
               </Text>
             </TouchableOpacity>
 
