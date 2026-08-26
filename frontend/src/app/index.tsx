@@ -6,12 +6,17 @@ import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
 import Fuse from "fuse.js";
 import { formatPKR } from "../lib/currency";
+import { interpretStyleSearch, type AISearchIntent } from "../lib/ai-search";
 const heroImage = require("../../assets/hero-banner.png");
 
 
 export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiIntent, setAiIntent] = useState<AISearchIntent | null>(null);
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiError, setAiError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,13 +28,53 @@ export default function HomeScreen() {
     const params = new URLSearchParams();
     if (selectedCategory) params.append("category", selectedCategory);
 
-    fetch(`${API_URL}/items?${params.toString()}`)
-      .then((response) => response.json())
-      .then((data) => setAllItems(data))
-      .catch((error) => console.log("ERROR:", error));
-  }, [selectedCategory]);
+    if (aiIntent) {
+      if (aiIntent.brand) params.append("brand", aiIntent.brand);
+      if (aiIntent.color) params.append("color", aiIntent.color);
+      if (aiIntent.size) params.append("size", aiIntent.size);
+      if (aiIntent.condition) params.append("condition", aiIntent.condition);
+      if (aiIntent.min_price !== null) params.append("min_price", String(aiIntent.min_price));
+      if (aiIntent.max_price !== null) params.append("max_price", String(aiIntent.max_price));
+    }
+
+    const queryString = params.toString();
+    const url = `${API_URL}/items${queryString ? `?${queryString}` : ""}`;
+
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load items");
+        return response.json();
+      })
+      .then((data) => setAllItems(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        console.log("ERROR:", error);
+        setAllItems([]);
+      });
+  }, [selectedCategory, aiIntent]);
 
   useEffect(() => {
+    if (aiIntent) {
+      const terms = aiIntent.keywords.filter((keyword) => keyword.trim().length > 0);
+
+      if (terms.length === 0) {
+        setItems(allItems);
+        return;
+      }
+
+      const fuse = new Fuse(allItems, {
+        keys: ["title", "brand", "description", "category", "color", "condition", "size"],
+        threshold: 0.4,
+      });
+      const matchedItems = new Map<number, any>();
+
+      terms.forEach((term) => {
+        fuse.search(term).forEach((result) => matchedItems.set(result.item.id, result.item));
+      });
+
+      setItems(matchedItems.size > 0 ? Array.from(matchedItems.values()) : allItems);
+      return;
+    }
+
     if (!search.trim()) {
       setItems(allItems);
       return;
@@ -41,8 +86,55 @@ export default function HomeScreen() {
     });
 
     const results = fuse.search(search);
-    setItems(results.map((r) => r.item));
-  }, [search, allItems]);
+    setItems(results.map((result) => result.item));
+  }, [search, allItems, aiIntent]);
+
+  const handleAiSearch = async () => {
+    const query = aiQuery.trim();
+    if (query.length < 2 || aiSearching) return;
+
+    setAiSearching(true);
+    setAiError("");
+
+    try {
+      const result = await interpretStyleSearch(query);
+      setAiIntent(result.intent);
+      setSelectedCategory(result.intent.category);
+      setSearch("");
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : "Reloop could not understand that search.");
+    } finally {
+      setAiSearching(false);
+    }
+  };
+
+  const clearAiSearch = () => {
+    setAiQuery("");
+    setAiIntent(null);
+    setAiError("");
+    setSelectedCategory(null);
+  };
+
+  const handleCategorySelect = (category: string | null) => {
+    setSelectedCategory(category);
+    setAiQuery("");
+    setAiIntent(null);
+    setAiError("");
+  };
+
+  const handleTextSearch = (value: string) => {
+    setSearch(value);
+
+    if (aiIntent) {
+      setAiQuery("");
+      setAiIntent(null);
+      setAiError("");
+      setSelectedCategory(null);
+    }
+  };
+
+  const intentLabels = aiIntent ? getIntentLabels(aiIntent) : [];
+
 
   useFocusEffect(
     useCallback(() => {
@@ -82,7 +174,7 @@ export default function HomeScreen() {
               placeholder="Search for items"
               placeholderTextColor={colors.inkMuted}
               value={search}
-              onChangeText={setSearch}
+              onChangeText={handleTextSearch}
               style={{ flex: 1, fontSize: 14, color: colors.ink }}
             />
           </View>
@@ -141,9 +233,9 @@ export default function HomeScreen() {
         {/* Category nav row */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: spacing.sm }}>
           <View style={{ flexDirection: "row", gap: spacing.lg }}>
-            <CategoryTab label="All" active={selectedCategory === null} onPress={() => setSelectedCategory(null)} />
-            {CATEGORIES.map((c) => (
-              <CategoryTab key={c} label={c} active={selectedCategory === c} onPress={() => setSelectedCategory(c)} />
+            <CategoryTab label="All" active={selectedCategory === null} onPress={() => handleCategorySelect(null)} />
+            {CATEGORIES.map((category) => (
+              <CategoryTab key={category} label={category} active={selectedCategory === category} onPress={() => handleCategorySelect(category)} />
             ))}
           </View>
         </ScrollView>
@@ -193,6 +285,99 @@ export default function HomeScreen() {
         )}
 
         <View style={{ paddingHorizontal: spacing.md, maxWidth: 900, width: "100%", alignSelf: "center" }}>
+          {/* AI style search */}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing.md,
+              marginTop: spacing.md,
+              marginBottom: spacing.lg,
+              ...cardShadow,
+            }}
+          >
+            <Text style={{ ...type.h2, color: colors.wine, marginBottom: 4 }}>✨ Ask Reloop</Text>
+            <Text style={{ ...type.body, color: colors.inkMuted, marginBottom: spacing.sm }}>
+              Describe what you need in English or Roman Urdu.
+            </Text>
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+              <TextInput
+                placeholder="e.g. university ke liye black jacket under 4k"
+                placeholderTextColor={colors.inkMuted}
+                value={aiQuery}
+                onChangeText={(value) => {
+                  setAiQuery(value);
+                  setAiError("");
+                }}
+                onSubmitEditing={() => void handleAiSearch()}
+                returnKeyType="search"
+                editable={!aiSearching}
+                style={{
+                  flex: 1,
+                  height: 44,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: radius.md,
+                  paddingHorizontal: spacing.sm,
+                  backgroundColor: colors.background,
+                  color: colors.ink,
+                  fontSize: 14,
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => void handleAiSearch()}
+                disabled={aiSearching || aiQuery.trim().length < 2}
+                style={{
+                  height: 44,
+                  justifyContent: "center",
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: aiSearching || aiQuery.trim().length < 2 ? colors.border : colors.wine,
+                }}
+              >
+                <Text style={{ color: colors.white, fontWeight: "700", fontSize: 13 }}>
+                  {aiSearching ? "Thinking..." : "Ask Reloop"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {aiError ? (
+              <Text style={{ color: "#B42318", fontSize: 13, marginTop: spacing.sm }}>{aiError}</Text>
+            ) : null}
+
+            {aiIntent && (
+              <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.sm }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: colors.wine, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
+                      Reloop understood
+                    </Text>
+                    <Text style={{ ...type.body, color: colors.ink }}>{aiIntent.summary}</Text>
+                  </View>
+                  <TouchableOpacity onPress={clearAiSearch}>
+                    <Text style={{ color: colors.wine, fontSize: 13, fontWeight: "700" }}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {intentLabels.length > 0 && (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginTop: spacing.sm }}>
+                    {intentLabels.map((label, index) => (
+                      <View
+                        key={`${label}-${index}`}
+                        style={{ backgroundColor: colors.background, borderRadius: 999, paddingVertical: 5, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.border }}
+                      >
+                        <Text style={{ color: colors.inkMuted, fontSize: 12, fontWeight: "600" }}>{label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+
           {user && (
             <Link href="/create-item" asChild>
               <TouchableOpacity
@@ -217,7 +402,13 @@ export default function HomeScreen() {
           )}
 
           <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>
-            {selectedCategory ? selectedCategory : search ? `Results for "${search}"` : "Just listed"}
+            {aiIntent
+              ? "Reloop AI matches"
+              : selectedCategory
+                ? selectedCategory
+                : search
+                  ? `Results for "${search}"`
+                  : "Just listed"}
             {items.length > 0 ? `   ${items.length} ${items.length === 1 ? "item" : "items"}` : ""}
           </Text>
 
@@ -226,7 +417,11 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 40, marginBottom: spacing.sm }}>🔍</Text>
               <Text style={{ ...type.h2, color: colors.ink, marginBottom: 4 }}>Nothing here yet</Text>
               <Text style={{ ...type.body, color: colors.inkMuted, textAlign: "center" }}>
-                {selectedCategory ? `No items in ${selectedCategory} right now.` : "Check back soon, or list something yourself."}
+                {aiIntent
+                  ? "Try a broader description or remove one of the details."
+                  : selectedCategory
+                    ? `No items in ${selectedCategory} right now.`
+                    : "Check back soon, or list something yourself."}
               </Text>
             </View>
           )}
@@ -305,6 +500,31 @@ export default function HomeScreen() {
       )}
     </View>
   );
+}
+
+function getIntentLabels(intent: AISearchIntent): string[] {
+  const labels: string[] = [];
+
+  if (intent.category) labels.push(intent.category);
+  if (intent.brand) labels.push(intent.brand);
+  if (intent.color) labels.push(intent.color);
+  if (intent.size) labels.push(`Size ${intent.size}`);
+  if (intent.condition) labels.push(intent.condition);
+
+  if (intent.min_price !== null && intent.max_price !== null) {
+    labels.push(`${formatPKR(intent.min_price)} – ${formatPKR(intent.max_price)}`);
+  } else if (intent.min_price !== null) {
+    labels.push(`From ${formatPKR(intent.min_price)}`);
+  } else if (intent.max_price !== null) {
+    labels.push(`Under ${formatPKR(intent.max_price)}`);
+  }
+
+  intent.keywords.forEach((keyword) => {
+    const alreadyIncluded = labels.some((label) => label.toLowerCase() === keyword.toLowerCase());
+    if (!alreadyIncluded) labels.push(keyword);
+  });
+
+  return labels;
 }
 
 function MenuLink({ href, label, onPress }: { href: string; label: string; onPress: () => void }) {
