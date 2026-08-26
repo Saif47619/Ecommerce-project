@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator } fr
 import { useLocalSearchParams, Link } from "expo-router";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type, cardShadow } from "../../constants/reloop-theme";
+import { formatPKR } from "../../lib/currency";
 
 export default function StorePageScreen() {
   const { id } = useLocalSearchParams();
@@ -124,7 +125,7 @@ export default function StorePageScreen() {
                 <Text style={{ fontSize: 13, color: colors.inkMuted, marginTop: 1 }} numberOfLines={1}>
                   {item.title}
                 </Text>
-                <Text style={{ ...type.price, color: colors.ink, marginTop: 3 }}>${item.price}</Text>
+                <Text style={{ ...type.price, color: colors.ink, marginTop: 3 }}>{formatPKR(item.price)}</Text>
               </TouchableOpacity>
             </Link>
           ))}

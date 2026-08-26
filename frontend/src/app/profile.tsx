@@ -4,6 +4,7 @@ import { router, useFocusEffect } from "expo-router";
 import { useAuth } from "../context/auth-context";
 import { API_URL } from "../lib/api";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
+import { formatPKR } from "../lib/currency";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -127,7 +128,7 @@ export default function ProfileScreen() {
 
             <View style={{ flex: 1, backgroundColor: colors.brass, borderRadius: radius.md, padding: spacing.sm }}>
               <Text style={{ fontSize: 11, color: colors.white, fontWeight: "600" }}>EARNED</Text>
-              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.white }}>${totalEarnings.toFixed(2)}</Text>
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.white }}>{formatPKR(totalEarnings)}</Text>
             </View>
           </View>
 
@@ -157,7 +158,7 @@ export default function ProfileScreen() {
             >
               <View>
                 <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>{item.title}</Text>
-                <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>${item.price}</Text>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>{formatPKR(item.price)}</Text>
               </View>
 
               <View
@@ -203,7 +204,7 @@ export default function ProfileScreen() {
             }}
           >
             <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>{item.title}</Text>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>${item.price}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>{formatPKR(item.price)}</Text>
           </View>
         ))
       )}

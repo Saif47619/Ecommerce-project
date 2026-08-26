@@ -4,6 +4,7 @@ import { useLocalSearchParams, router, Link } from "expo-router";
 import { API_URL } from "../../lib/api";
 import { useAuth } from "../../context/auth-context";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
+import { formatPKR } from "../../lib/currency";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -191,7 +192,7 @@ export default function ItemDetailScreen() {
                       <Text style={{ fontSize: 11, color: colors.inkMuted, marginBottom: 2 }} numberOfLines={1}>
                         {other.condition || "Good"}
                       </Text>
-                      <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>${other.price}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>{formatPKR(other.price)}</Text>
                     </TouchableOpacity>
                   </Link>
                 ))}
@@ -222,7 +223,7 @@ export default function ItemDetailScreen() {
                       <Text style={{ fontSize: 11, color: colors.inkMuted, marginBottom: 2 }} numberOfLines={1}>
                         {sim.title}
                       </Text>
-                      <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>${sim.price}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>{formatPKR(sim.price)}</Text>
                     </TouchableOpacity>
                   </Link>
                 ))}
@@ -247,7 +248,7 @@ export default function ItemDetailScreen() {
           </View>
 
           <Text style={{ fontSize: 32, fontWeight: "800", color: colors.ink, marginBottom: spacing.md }}>
-            ${item.price}
+            {formatPKR(item.price)}
           </Text>
 
           {item.store && (

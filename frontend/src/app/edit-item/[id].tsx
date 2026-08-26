@@ -494,7 +494,7 @@ export default function EditItemScreen() {
 
       <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Price ($)</Text>
+          <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Price (Rs)</Text>
           <TextInput
             value={price}
             onChangeText={setPrice}

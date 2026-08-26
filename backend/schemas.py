@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
@@ -11,6 +11,10 @@ class UserCreate(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class AISearchRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=300)
 
 
 class StoreCreate(BaseModel):
