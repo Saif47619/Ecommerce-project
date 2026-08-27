@@ -12,6 +12,16 @@ from sqlalchemy.orm import Session
 from models import User, Store, Item, Message, ItemImage
 from database import engine, SessionLocal, Base
 
+from ai_fit import (
+    BuyerFitData,
+    FIT_DISCLAIMER,
+    FIT_LABELS,
+    FitDataError,
+    GarmentFitData,
+    assess_fit,
+)
+
+
 from ai_descriptions import (
     AIConfigurationError,
     AIGenerationError,
@@ -31,6 +41,7 @@ from schemas import (
     MessageCreate,
     OfferResponse,
     AISearchRequest,
+    FitCheckRequest,
 )
 
 app = FastAPI()
@@ -132,7 +143,75 @@ async def interpret_ai_search(request: AISearchRequest):
         "model": model,
     }
 
+@app.post("/ai/fit-check")
+async def check_ai_fit(
+    request: FitCheckRequest,
+    db: Session = Depends(get_db),
+):
+    item = db.query(Item).filter(Item.id == request.item_id).first()
 
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+        )
+
+    garment = GarmentFitData(
+        title=item.title or "",
+        category=item.category or "",
+        size=item.size or "",
+        chest_width_in=item.chest_width_in,
+        shoulder_width_in=item.shoulder_width_in,
+        waist_width_in=item.waist_width_in,
+        hip_width_in=item.hip_width_in,
+        length_in=item.length_in,
+        inseam_in=item.inseam_in,
+    )
+
+    buyer = BuyerFitData(
+        preferred_fit=request.preferred_fit,
+        chest_in=request.chest_in,
+        shoulder_in=request.shoulder_in,
+        waist_in=request.waist_in,
+        hip_in=request.hip_in,
+        inseam_in=request.inseam_in,
+    )
+
+    try:
+        assessment, model, compared_measurements = (
+            await run_in_threadpool(
+                assess_fit,
+                garment,
+                buyer,
+            )
+        )
+    except FitDataError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+    except AIConfigurationError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        ) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "item_id": item.id,
+        "verdict": assessment.verdict,
+        "label": FIT_LABELS[assessment.verdict],
+        "confidence": assessment.confidence,
+        "summary": assessment.summary,
+        "reasons": assessment.reasons,
+        "compared_measurements": compared_measurements,
+        "disclaimer": FIT_DISCLAIMER,
+        "model": model,
+    }
 
 @app.post("/signup")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
@@ -222,6 +301,12 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
         brand=item.brand,
         condition=item.condition,
         color=item.color,
+        chest_width_in=item.chest_width_in,
+        shoulder_width_in=item.shoulder_width_in,
+        waist_width_in=item.waist_width_in,
+        hip_width_in=item.hip_width_in,
+        length_in=item.length_in,
+        inseam_in=item.inseam_in,
         image_url=item.image_url,
         store_id=item.store_id,
     )
@@ -278,6 +363,12 @@ def get_items(
             "brand": item.brand,
             "condition": item.condition,
             "color": item.color,
+            "chest_width_in": item.chest_width_in,
+            "shoulder_width_in": item.shoulder_width_in,
+            "waist_width_in": item.waist_width_in,
+            "hip_width_in": item.hip_width_in,
+            "length_in": item.length_in,
+            "inseam_in": item.inseam_in,
             "image_url": item.image_url,
             "is_sold": item.is_sold,
             "store_id": item.store_id,
@@ -325,6 +416,12 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
         "brand": item.brand,
         "condition": item.condition,
         "color": item.color,
+        "chest_width_in": item.chest_width_in,
+        "shoulder_width_in": item.shoulder_width_in,
+        "waist_width_in": item.waist_width_in,
+        "hip_width_in": item.hip_width_in,
+        "length_in": item.length_in,
+        "inseam_in": item.inseam_in,
         "created_at": item.created_at,
         "image_url": item.image_url,
         "is_sold": item.is_sold,
@@ -351,6 +448,12 @@ def update_item(item_id: int, item: ItemUpdate, db: Session = Depends(get_db)):
     existing_item.brand = item.brand
     existing_item.condition = item.condition
     existing_item.color = item.color
+    existing_item.chest_width_in = item.chest_width_in
+    existing_item.shoulder_width_in = item.shoulder_width_in
+    existing_item.waist_width_in = item.waist_width_in
+    existing_item.hip_width_in = item.hip_width_in
+    existing_item.length_in = item.length_in
+    existing_item.inseam_in = item.inseam_in
     existing_item.image_url = item.image_url
 
     db.commit()
