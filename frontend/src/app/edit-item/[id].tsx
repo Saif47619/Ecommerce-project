@@ -14,6 +14,13 @@ import * as ImagePicker from "expo-image-picker";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 import { generateAiDescription } from "../../lib/ai-description";
+import {
+  EMPTY_GARMENT_MEASUREMENTS,
+  GarmentMeasurementsFields,
+  garmentMeasurementsFromItem,
+  parseGarmentMeasurements,
+  type GarmentMeasurementKey,
+} from "../../components/garment-measurements";
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams();
@@ -25,6 +32,9 @@ export default function EditItemScreen() {
   const [category, setCategory] = useState("");
   const [condition, setCondition] = useState("");
   const [color, setColor] = useState("");
+  const [measurements, setMeasurements] = useState({
+    ...EMPTY_GARMENT_MEASUREMENTS,
+  });
   const [imageUrl, setImageUrl] = useState("");
 
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
@@ -63,6 +73,9 @@ export default function EditItemScreen() {
         setCategory(item.category || "");
         setCondition(item.condition || "");
         setColor(item.color || "");
+        setMeasurements(
+          garmentMeasurementsFromItem(item),
+        );
         setImageUrl(item.image_url || "");
         setIsSold(item.is_sold || false);
 
@@ -169,9 +182,37 @@ export default function EditItemScreen() {
     }
   };
 
+  const handleMeasurementChange = (
+    key: GarmentMeasurementKey,
+    value: string,
+  ) => {
+    setMeasurements((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
   const handleSave = async () => {
     if (!title || !price) {
       Alert.alert("Error", "Title and price are required");
+      return;
+    }
+
+    let parsedMeasurements: ReturnType<
+      typeof parseGarmentMeasurements
+    >;
+
+    try {
+      parsedMeasurements = parseGarmentMeasurements(
+        measurements,
+      );
+    } catch (error) {
+      Alert.alert(
+        "Check measurements",
+        error instanceof Error
+          ? error.message
+          : "Enter valid garment measurements.",
+      );
       return;
     }
 
@@ -189,6 +230,7 @@ export default function EditItemScreen() {
           category,
           condition,
           color,
+          ...parsedMeasurements,
           image_url: imageUrl,
         }),
       });
@@ -491,6 +533,11 @@ export default function EditItemScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      <GarmentMeasurementsFields
+        values={measurements}
+        onChange={handleMeasurementChange}
+      />
 
       <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
         <View style={{ flex: 1 }}>
