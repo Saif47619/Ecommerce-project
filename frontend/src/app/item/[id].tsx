@@ -6,7 +6,8 @@ import { useAuth } from "../../context/auth-context";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 import { formatPKR } from "../../lib/currency";
 import FitConfidenceCard from "../../components/fit-confidence-card";
-
+import ConditionPassportCard from "../../components/condition-passport-card";
+import ScreenBackButton from "../../components/screen-back-button";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -104,8 +105,23 @@ export default function ItemDetailScreen() {
 
   const brandLabel = item.brand || "Unbranded";
 
-  return (
+      return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
+      <View
+        style={{
+          maxWidth: 1000,
+          alignSelf: "center",
+          width: "100%",
+          paddingHorizontal: spacing.sm,
+          paddingTop: spacing.sm,
+        }}
+      >
+        <ScreenBackButton
+          label="Back to marketplace"
+          onPress={() => router.replace("/")}
+        />
+      </View>
+
       <View
         style={{
           marginTop: 20,
@@ -331,6 +347,16 @@ export default function ItemDetailScreen() {
               </Text>
             )}
           </View>
+                    <ConditionPassportCard
+            key={`condition-${item.id}`}
+            itemId={Number(item.id)}
+            isOwner={isOwnItem}
+            ownerId={
+              isOwnItem
+                ? user?.id
+                : undefined
+            }
+          />
           <FitConfidenceCard
             key={item.id}
             itemId={Number(item.id)}
