@@ -62,6 +62,12 @@ class Item(Base):
     color = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     store = relationship("Store", back_populates="items")
+    chest_width_in = Column(Float, nullable=True)
+    shoulder_width_in = Column(Float, nullable=True)
+    waist_width_in = Column(Float, nullable=True)
+    hip_width_in = Column(Float, nullable=True)
+    length_in = Column(Float, nullable=True)
+    inseam_in = Column(Float, nullable=True)
 
 
 class ItemImage(Base):

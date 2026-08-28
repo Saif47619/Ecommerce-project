@@ -15,6 +15,13 @@ import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
 import { generateAiDescription } from "../lib/ai-description";
+import {
+  EMPTY_GARMENT_MEASUREMENTS,
+  GarmentMeasurementsFields,
+  parseGarmentMeasurements,
+  type GarmentMeasurementKey,
+} from "../components/garment-measurements";
+
 
 export default function CreateItemScreen() {
   const { user } = useAuth();
@@ -26,6 +33,9 @@ export default function CreateItemScreen() {
   const [category, setCategory] = useState("");
   const [condition, setCondition] = useState("");
   const [color, setColor] = useState("");
+  const [measurements, setMeasurements] = useState({
+    ...EMPTY_GARMENT_MEASUREMENTS,
+  });
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -94,13 +104,42 @@ export default function CreateItemScreen() {
     }
   };
 
+  const handleMeasurementChange = (
+    key: GarmentMeasurementKey,
+    value: string,
+  ) => {
+    setMeasurements((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
   const handleCreateItem = async () => {
     if (!user) {
       Alert.alert("Error", "You must be logged in");
       return;
     }
+
     if (!title || !price) {
       Alert.alert("Error", "Title and price are required");
+      return;
+    }
+
+    let parsedMeasurements: ReturnType<
+      typeof parseGarmentMeasurements
+    >;
+
+    try {
+      parsedMeasurements = parseGarmentMeasurements(
+        measurements,
+      );
+    } catch (error) {
+      Alert.alert(
+        "Check measurements",
+        error instanceof Error
+          ? error.message
+          : "Enter valid garment measurements.",
+      );
       return;
     }
 
@@ -113,6 +152,7 @@ export default function CreateItemScreen() {
         setSubmitting(false);
         return;
       }
+
       const store = await storeRes.json();
 
       const itemRes = await fetch(`${API_URL}/items`, {
@@ -127,6 +167,7 @@ export default function CreateItemScreen() {
           category,
           condition,
           color,
+          ...parsedMeasurements,
           image_url: "",
           store_id: store.id,
         }),
@@ -142,6 +183,7 @@ export default function CreateItemScreen() {
 
       if (imageUris.length > 0) {
         const formData = new FormData();
+
         for (let i = 0; i < imageUris.length; i++) {
           const response = await fetch(imageUris[i]);
           const blob = await response.blob();
@@ -397,6 +439,11 @@ export default function CreateItemScreen() {
           </View>
         </View>
       </View>
+
+      <GarmentMeasurementsFields
+        values={measurements}
+        onChange={handleMeasurementChange}
+      />
 
       {/* Pricing */}
       <SectionLabel text="Pricing" />

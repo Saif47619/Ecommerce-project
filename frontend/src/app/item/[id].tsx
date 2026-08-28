@@ -5,6 +5,8 @@ import { API_URL } from "../../lib/api";
 import { useAuth } from "../../context/auth-context";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 import { formatPKR } from "../../lib/currency";
+import FitConfidenceCard from "../../components/fit-confidence-card";
+
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -329,6 +331,18 @@ export default function ItemDetailScreen() {
               </Text>
             )}
           </View>
+          <FitConfidenceCard
+            key={item.id}
+            itemId={Number(item.id)}
+            measurements={{
+              chest_width_in: item.chest_width_in,
+              shoulder_width_in: item.shoulder_width_in,
+              waist_width_in: item.waist_width_in,
+              hip_width_in: item.hip_width_in,
+              length_in: item.length_in,
+              inseam_in: item.inseam_in,
+            }}
+          />
 
           {/* Shipping card */}
           <View
