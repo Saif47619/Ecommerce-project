@@ -1,6 +1,8 @@
+import mimetypes
 import os
 import shutil
 import uuid
+from pathlib import Path
 from starlette.concurrency import run_in_threadpool
 from typing import Optional
 from fastapi import Form
@@ -9,7 +11,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from models import User, Store, Item, Message, ItemImage
+from models import (
+    User,
+    Store,
+    Item,
+    Message,
+    ItemImage,
+    ConditionPassport,
+)
 from database import engine, SessionLocal, Base
 
 from ai_fit import (
@@ -19,6 +28,16 @@ from ai_fit import (
     FitDataError,
     GarmentFitData,
     assess_fit,
+)
+
+from ai_condition import (
+    MAX_CONDITION_PHOTOS,
+    MAX_PHOTO_BYTES,
+    ConditionDataError,
+    ConditionItemDetails,
+    ConditionPhoto,
+    analyze_condition,
+    build_source_fingerprint,
 )
 
 
@@ -66,6 +85,119 @@ def get_db():
         yield db
     finally:
         db.close()
+
+BACKEND_DIRECTORY = Path(__file__).resolve().parent
+UPLOADS_DIRECTORY = BACKEND_DIRECTORY / "uploads"
+
+
+def load_condition_sources(
+    item: Item,
+    db: Session,
+) -> tuple[
+    ConditionItemDetails,
+    list[ConditionPhoto],
+]:
+    image_records = (
+        db.query(ItemImage)
+        .filter(ItemImage.item_id == item.id)
+        .order_by(ItemImage.position)
+        .limit(MAX_CONDITION_PHOTOS)
+        .all()
+    )
+
+    image_urls = [
+        image.image_url
+        for image in image_records
+    ]
+
+    if not image_urls and item.image_url:
+        image_urls = [item.image_url]
+
+    details = ConditionItemDetails(
+        title=item.title or "",
+        category=item.category or "",
+        brand=item.brand or "",
+        seller_condition=item.condition or "",
+    )
+
+    photos: list[ConditionPhoto] = []
+
+    for index, image_url in enumerate(
+        image_urls,
+        start=1,
+    ):
+        file_name = Path(image_url).name
+        file_path = UPLOADS_DIRECTORY / file_name
+
+        try:
+            with file_path.open("rb") as image_file:
+                image_bytes = image_file.read(
+                    MAX_PHOTO_BYTES + 1
+                )
+        except OSError as exc:
+            raise ConditionDataError(
+                f"Photo {index} could not be read. "
+                "Remove or replace the missing photo."
+            ) from exc
+
+        mime_type = (
+            mimetypes.guess_type(file_name)[0]
+            or ""
+        )
+
+        photos.append(
+            ConditionPhoto(
+                number=index,
+                image_bytes=image_bytes,
+                mime_type=mime_type,
+            )
+        )
+
+    return details, photos
+
+
+def serialize_condition_passport(
+    passport: ConditionPassport,
+) -> dict:
+    return {
+        "id": passport.id,
+        "item_id": passport.item_id,
+        "visual_grade": passport.visual_grade,
+        "seller_condition_consistency": (
+            passport.seller_condition_consistency
+        ),
+        "photo_coverage": passport.photo_coverage,
+        "confidence": passport.confidence,
+        "summary": passport.summary,
+        "observations": passport.observations,
+        "limitations": passport.limitations,
+        "suggested_photos": (
+            passport.suggested_photos
+        ),
+        "photo_count": passport.photo_count,
+        "model": passport.model,
+        "created_at": passport.created_at,
+        "updated_at": passport.updated_at,
+        "is_stale": not bool(
+            passport.source_fingerprint
+        ),
+    }
+
+
+def mark_condition_passport_stale(
+    item_id: int,
+    db: Session,
+) -> None:
+    passport = (
+        db.query(ConditionPassport)
+        .filter(
+            ConditionPassport.item_id == item_id
+        )
+        .first()
+    )
+
+    if passport:
+        passport.source_fingerprint = ""
 
 
 @app.get("/")
@@ -212,6 +344,225 @@ async def check_ai_fit(
         "disclaimer": FIT_DISCLAIMER,
         "model": model,
     }
+
+
+@app.get("/items/{item_id}/condition-passport")
+def get_condition_passport(
+    item_id: int,
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(Item)
+        .filter(Item.id == item_id)
+        .first()
+    )
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+        )
+
+    passport = (
+        db.query(ConditionPassport)
+        .filter(
+            ConditionPassport.item_id == item_id
+        )
+        .first()
+    )
+
+    if not passport:
+        return {
+            "status": "not_generated",
+            "passport": None,
+        }
+
+    is_stale = not bool(
+        passport.source_fingerprint
+    )
+
+    return {
+        "status": (
+            "stale"
+            if is_stale
+            else "ready"
+        ),
+        "passport": serialize_condition_passport(
+            passport
+        ),
+    }
+
+
+@app.post("/items/{item_id}/condition-passport")
+async def generate_condition_passport(
+    item_id: int,
+    owner_id: int,
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(Item)
+        .filter(Item.id == item_id)
+        .first()
+    )
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+        )
+
+    store = (
+        db.query(Store)
+        .filter(Store.id == item.store_id)
+        .first()
+    )
+
+    if not store or store.owner_id != owner_id:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Only the listing owner can generate "
+                "its condition passport."
+            ),
+        )
+
+    try:
+        details, photos = load_condition_sources(
+            item,
+            db,
+        )
+
+        current_fingerprint = (
+            await run_in_threadpool(
+                build_source_fingerprint,
+                details,
+                photos,
+            )
+        )
+    except ConditionDataError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    passport = (
+        db.query(ConditionPassport)
+        .filter(
+            ConditionPassport.item_id == item_id
+        )
+        .first()
+    )
+
+    if (
+        passport
+        and passport.source_fingerprint
+        == current_fingerprint
+    ):
+        return {
+            "status": "ready",
+            "cached": True,
+            "passport": (
+                serialize_condition_passport(
+                    passport
+                )
+            ),
+        }
+
+    try:
+        (
+            assessment,
+            model,
+            source_fingerprint,
+        ) = await run_in_threadpool(
+            analyze_condition,
+            details,
+            photos,
+        )
+    except ConditionDataError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+    except AIConfigurationError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        ) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    assessment_data = assessment.model_dump()
+
+    if not passport:
+        passport = ConditionPassport(
+            item_id=item.id,
+            visual_grade=(
+                assessment.visual_grade
+            ),
+            seller_condition_consistency=(
+                assessment.seller_condition_consistency
+            ),
+            photo_coverage=(
+                assessment.photo_coverage
+            ),
+            confidence=assessment.confidence,
+            summary=assessment.summary,
+            observations=assessment_data[
+                "observations"
+            ],
+            limitations=assessment.limitations,
+            suggested_photos=(
+                assessment.suggested_photos
+            ),
+            photo_count=len(photos),
+            source_fingerprint=(
+                source_fingerprint
+            ),
+            model=model,
+        )
+        db.add(passport)
+    else:
+        passport.visual_grade = (
+            assessment.visual_grade
+        )
+        passport.seller_condition_consistency = (
+            assessment.seller_condition_consistency
+        )
+        passport.photo_coverage = (
+            assessment.photo_coverage
+        )
+        passport.confidence = (
+            assessment.confidence
+        )
+        passport.summary = assessment.summary
+        passport.observations = (
+            assessment_data["observations"]
+        )
+        passport.limitations = (
+            assessment.limitations
+        )
+        passport.suggested_photos = (
+            assessment.suggested_photos
+        )
+        passport.photo_count = len(photos)
+        passport.source_fingerprint = (
+            source_fingerprint
+        )
+        passport.model = model
+
+    db.commit()
+    db.refresh(passport)
+
+    return {
+        "status": "ready",
+        "cached": False,
+        "passport": serialize_condition_passport(
+            passport
+        ),
+        }
 
 @app.post("/signup")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
@@ -435,10 +786,32 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/items/{item_id}")
-def update_item(item_id: int, item: ItemUpdate, db: Session = Depends(get_db)):
-    existing_item = db.query(Item).filter(Item.id == item_id).first()
+def update_item(
+    item_id: int,
+    item: ItemUpdate,
+    db: Session = Depends(get_db),
+):
+    existing_item = (
+        db.query(Item)
+        .filter(Item.id == item_id)
+        .first()
+    )
+
     if not existing_item:
-        raise HTTPException(status_code=404, detail="Item not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+        )
+
+    passport_source_changed = any(
+        (
+            existing_item.title != item.title,
+            existing_item.category != item.category,
+            existing_item.brand != item.brand,
+            existing_item.condition != item.condition,
+            existing_item.image_url != item.image_url,
+        )
+    )
 
     existing_item.title = item.title
     existing_item.description = item.description
@@ -448,16 +821,31 @@ def update_item(item_id: int, item: ItemUpdate, db: Session = Depends(get_db)):
     existing_item.brand = item.brand
     existing_item.condition = item.condition
     existing_item.color = item.color
-    existing_item.chest_width_in = item.chest_width_in
-    existing_item.shoulder_width_in = item.shoulder_width_in
-    existing_item.waist_width_in = item.waist_width_in
-    existing_item.hip_width_in = item.hip_width_in
+    existing_item.chest_width_in = (
+        item.chest_width_in
+    )
+    existing_item.shoulder_width_in = (
+        item.shoulder_width_in
+    )
+    existing_item.waist_width_in = (
+        item.waist_width_in
+    )
+    existing_item.hip_width_in = (
+        item.hip_width_in
+    )
     existing_item.length_in = item.length_in
     existing_item.inseam_in = item.inseam_in
     existing_item.image_url = item.image_url
 
+    if passport_source_changed:
+        mark_condition_passport_stale(
+            item_id,
+            db,
+        )
+
     db.commit()
     db.refresh(existing_item)
+
     return existing_item
 
 
@@ -515,6 +903,10 @@ def upload_item_image(
         shutil.copyfileobj(file.file, buffer)
 
     item.image_url = f"/uploads/{unique_filename}"
+    mark_condition_passport_stale(
+        item_id,
+        db,
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -667,6 +1059,9 @@ async def upload_item_images(
 
         if not item.image_url:
             item.image_url = image_url
+    mark_condition_passport_stale(
+        item_id,
+        db,)
 
     db.commit()
     return {"images": saved_images}
@@ -685,6 +1080,10 @@ def delete_item_image(image_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Image not found")
 
     item = db.query(Item).filter(Item.id == image.item_id).first()
+    mark_condition_passport_stale(
+        image.item_id,
+        db,
+        )
     db.delete(image)
     db.commit()
 
@@ -702,6 +1101,10 @@ def reorder_item_images(item_id: int, image_ids: list[int], db: Session = Depend
         image = db.query(ItemImage).filter(ItemImage.id == img_id, ItemImage.item_id == item_id).first()
         if image:
             image.position = index
+    mark_condition_passport_stale(
+        item_id,
+        db,
+        )
     db.commit()
 
     images = db.query(ItemImage).filter(ItemImage.item_id == item_id).order_by(ItemImage.position).all()

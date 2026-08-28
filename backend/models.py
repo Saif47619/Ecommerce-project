@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
-
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import DateTime
 from datetime import datetime
 
@@ -62,6 +62,12 @@ class Item(Base):
     color = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     store = relationship("Store", back_populates="items")
+    condition_passport = relationship(
+    "ConditionPassport",
+    back_populates="item",
+    uselist=False,
+    cascade="all, delete-orphan",
+    )
     chest_width_in = Column(Float, nullable=True)
     shoulder_width_in = Column(Float, nullable=True)
     waist_width_in = Column(Float, nullable=True)
@@ -77,3 +83,91 @@ class ItemImage(Base):
     item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
     image_url = Column(String, nullable=False)
     position = Column(Integer, default=0)
+
+
+
+class ConditionPassport(Base):
+    __tablename__ = "condition_passports"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+    item_id = Column(
+        Integer,
+        ForeignKey(
+            "items.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        unique=True,
+    )
+
+    visual_grade = Column(
+        String(20),
+        nullable=False,
+    )
+    seller_condition_consistency = Column(
+        String(30),
+        nullable=False,
+    )
+    photo_coverage = Column(
+        String(20),
+        nullable=False,
+    )
+    confidence = Column(
+        String(10),
+        nullable=False,
+    )
+
+    summary = Column(
+        String,
+        nullable=False,
+    )
+
+    observations = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+    limitations = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+    suggested_photos = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
+
+    photo_count = Column(
+        Integer,
+        nullable=False,
+    )
+    source_fingerprint = Column(
+        String(64),
+        nullable=False,
+    )
+    model = Column(
+        String(100),
+        nullable=False,
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    item = relationship(
+        "Item",
+        back_populates="condition_passport",
+    )
