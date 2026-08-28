@@ -15,6 +15,7 @@ import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
 import { generateAiDescription } from "../lib/ai-description";
+import ScreenBackButton from "../components/screen-back-button";
 import {
   EMPTY_GARMENT_MEASUREMENTS,
   GarmentMeasurementsFields,
@@ -207,9 +208,28 @@ export default function CreateItemScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-      <Text style={{ ...type.brand, color: colors.ink, marginTop: 56, marginLeft: spacing.lg, marginBottom: spacing.lg }}>
-        List an item
-      </Text>
+            <View
+        style={{
+          marginTop: 40,
+          marginHorizontal: spacing.lg,
+          marginBottom: spacing.lg,
+          gap: spacing.md,
+        }}
+      >
+        <ScreenBackButton
+          label="Back to marketplace"
+          onPress={() => router.replace("/")}
+        />
+
+        <Text
+          style={{
+            ...type.brand,
+            color: colors.ink,
+          }}
+        >
+          List an item
+        </Text>
+      </View>
 
       {/* Photos section */}
       <SectionLabel text="Photos" />

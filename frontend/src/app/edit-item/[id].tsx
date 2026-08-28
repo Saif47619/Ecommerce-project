@@ -14,6 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 import { generateAiDescription } from "../../lib/ai-description";
+import ScreenBackButton from "../../components/screen-back-button";
 import {
   EMPTY_GARMENT_MEASUREMENTS,
   GarmentMeasurementsFields,
@@ -261,9 +262,31 @@ export default function EditItemScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg }}>
-      <Text style={{ ...type.brand, color: colors.ink, marginTop: 20, marginBottom: spacing.lg }}>
-        Edit listing
-      </Text>
+            <View
+        style={{
+          marginTop: 20,
+          marginBottom: spacing.lg,
+          gap: spacing.md,
+        }}
+      >
+        <ScreenBackButton
+          label="Back to item"
+          onPress={() =>
+            router.replace(
+              `/item/${id}` as any,
+            )
+          }
+        />
+
+        <Text
+          style={{
+            ...type.brand,
+            color: colors.ink,
+          }}
+        >
+          Edit listing
+        </Text>
+      </View>
 
       <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.sm }}>Photos</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.lg }}>
