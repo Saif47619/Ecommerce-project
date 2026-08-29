@@ -803,13 +803,29 @@ def update_item(
             detail="Item not found",
         )
 
+    cover_image = (
+        db.query(ItemImage)
+        .filter(ItemImage.item_id == item_id)
+        .order_by(
+            ItemImage.position,
+            ItemImage.id,
+        )
+        .first()
+    )
+
+    next_image_url = (
+        cover_image.image_url
+        if cover_image
+        else item.image_url
+    )
+
     passport_source_changed = any(
         (
             existing_item.title != item.title,
             existing_item.category != item.category,
             existing_item.brand != item.brand,
             existing_item.condition != item.condition,
-            existing_item.image_url != item.image_url,
+            existing_item.image_url != next_image_url,
         )
     )
 
@@ -835,7 +851,9 @@ def update_item(
     )
     existing_item.length_in = item.length_in
     existing_item.inseam_in = item.inseam_in
-    existing_item.image_url = item.image_url
+    existing_item.image_url = next_image_url
+
+
 
     if passport_source_changed:
         mark_condition_passport_stale(
@@ -1057,7 +1075,7 @@ async def upload_item_images(
         db.add(new_image)
         saved_images.append(image_url)
 
-        if not item.image_url:
+        if existing_count == 0 and i == 0:
             item.image_url = image_url
     mark_condition_passport_stale(
         item_id,
@@ -1092,7 +1110,10 @@ def delete_item_image(image_id: int, db: Session = Depends(get_db)):
         item.image_url = remaining[0].image_url if remaining else None
         db.commit()
 
-    return {"message": "Image deleted"}
+    return {
+    "message": "Image deleted",
+    "image_url": item.image_url if item else None,
+}
 
 
 @app.put("/items/{item_id}/reorder-images")
