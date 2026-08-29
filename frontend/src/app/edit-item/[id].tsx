@@ -91,26 +91,85 @@ export default function EditItemScreen() {
   }, [id]);
 
   const deleteImage = async (imageId: number) => {
-    await fetch(`${API_URL}/item-images/${imageId}`, { method: "DELETE" });
+  try {
+    const response = await fetch(
+      `${API_URL}/item-images/${imageId}`,
+      { method: "DELETE" },
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Could not delete photo");
+    }
+
+    setImageUrl(data.image_url || "");
     loadImages();
-  };
+  } catch (error) {
+    Alert.alert(
+      "Error",
+      error instanceof Error
+        ? error.message
+        : "Could not delete photo",
+    );
+  }
+};
 
-  const moveImage = async (index: number, direction: "left" | "right") => {
-    const newImages = [...images];
-    const targetIndex = direction === "left" ? index - 1 : index + 1;
+  const moveImage = async (
+  index: number,
+  direction: "left" | "right",
+) => {
+  const newImages = [...images];
+  const targetIndex =
+    direction === "left"
+      ? index - 1
+      : index + 1;
 
-    if (targetIndex < 0 || targetIndex >= newImages.length) return;
+  if (
+    targetIndex < 0 ||
+    targetIndex >= newImages.length
+  ) {
+    return;
+  }
 
-    [newImages[index], newImages[targetIndex]] = [newImages[targetIndex], newImages[index]];
-    setImages(newImages);
+  [
+    newImages[index],
+    newImages[targetIndex],
+  ] = [
+    newImages[targetIndex],
+    newImages[index],
+  ];
 
-    const orderedIds = newImages.map((img) => img.id);
-    await fetch(`${API_URL}/items/${id}/reorder-images`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(orderedIds),
-    });
-  };
+  setImages(newImages);
+  setImageUrl(newImages[0]?.image_url || "");
+
+  try {
+    const orderedIds = newImages.map(
+      (image) => image.id,
+    );
+    const response = await fetch(
+      `${API_URL}/items/${id}/reorder-images`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderedIds),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Could not reorder photos");
+    }
+  } catch (error) {
+    Alert.alert(
+      "Error",
+      error instanceof Error
+        ? error.message
+        : "Could not reorder photos",
+    );
+    loadImages();
+  }
+};
 
   const addPhoto = async () => {
     if (images.length >= 5) {
