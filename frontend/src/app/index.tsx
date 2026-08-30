@@ -7,6 +7,7 @@ import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-t
 import Fuse from "fuse.js";
 import { formatPKR } from "../lib/currency";
 import { interpretStyleSearch, type AISearchIntent } from "../lib/ai-search";
+import { rankItemsForAiSearch } from "../lib/ai-search-ranking";
 const heroImage = require("../../assets/hero-banner.png");
 
 
@@ -14,6 +15,7 @@ export default function HomeScreen() {
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [aiQuery, setAiQuery] = useState("");
+  const [activeAiQuery, setActiveAiQuery] = useState("");
   const [aiIntent, setAiIntent] = useState<AISearchIntent | null>(null);
   const [aiSearching, setAiSearching] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -26,13 +28,9 @@ export default function HomeScreen() {
 
   const loadItems = useCallback(() => {
     const params = new URLSearchParams();
-    if (selectedCategory) params.append("category", selectedCategory);
+    if (selectedCategory && !aiIntent) params.append("category", selectedCategory);
 
     if (aiIntent) {
-      if (aiIntent.brand) params.append("brand", aiIntent.brand);
-      if (aiIntent.color) params.append("color", aiIntent.color);
-      if (aiIntent.size) params.append("size", aiIntent.size);
-      if (aiIntent.condition) params.append("condition", aiIntent.condition);
       if (aiIntent.min_price !== null) params.append("min_price", String(aiIntent.min_price));
       if (aiIntent.max_price !== null) params.append("max_price", String(aiIntent.max_price));
     }
@@ -54,24 +52,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (aiIntent) {
-      const terms = aiIntent.keywords.filter((keyword) => keyword.trim().length > 0);
-
-      if (terms.length === 0) {
-        setItems(allItems);
-        return;
-      }
-
-      const fuse = new Fuse(allItems, {
-        keys: ["title", "brand", "description", "category", "color", "condition", "size"],
-        threshold: 0.4,
-      });
-      const matchedItems = new Map<number, any>();
-
-      terms.forEach((term) => {
-        fuse.search(term).forEach((result) => matchedItems.set(result.item.id, result.item));
-      });
-
-      setItems(matchedItems.size > 0 ? Array.from(matchedItems.values()) : allItems);
+      setItems(rankItemsForAiSearch(allItems, activeAiQuery, aiIntent));
       return;
     }
 
@@ -87,7 +68,7 @@ export default function HomeScreen() {
 
     const results = fuse.search(search);
     setItems(results.map((result) => result.item));
-  }, [search, allItems, aiIntent]);
+  }, [search, allItems, aiIntent, activeAiQuery]);
 
   const handleAiSearch = async () => {
     const query = aiQuery.trim();
@@ -99,7 +80,8 @@ export default function HomeScreen() {
     try {
       const result = await interpretStyleSearch(query);
       setAiIntent(result.intent);
-      setSelectedCategory(result.intent.category);
+      setActiveAiQuery(result.query);
+      setSelectedCategory(null);
       setSearch("");
     } catch (error) {
       setAiError(error instanceof Error ? error.message : "Reloop could not understand that search.");
@@ -110,6 +92,7 @@ export default function HomeScreen() {
 
   const clearAiSearch = () => {
     setAiQuery("");
+    setActiveAiQuery("");
     setAiIntent(null);
     setAiError("");
     setSelectedCategory(null);
@@ -118,6 +101,7 @@ export default function HomeScreen() {
   const handleCategorySelect = (category: string | null) => {
     setSelectedCategory(category);
     setAiQuery("");
+    setActiveAiQuery("");
     setAiIntent(null);
     setAiError("");
   };
@@ -127,6 +111,7 @@ export default function HomeScreen() {
 
     if (aiIntent) {
       setAiQuery("");
+      setActiveAiQuery("");
       setAiIntent(null);
       setAiError("");
       setSelectedCategory(null);
