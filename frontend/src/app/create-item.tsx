@@ -15,7 +15,13 @@ import { API_URL } from "../lib/api";
 import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
 import { generateAiDescription } from "../lib/ai-description";
+import {
+  analyzeListingPhotos,
+  applyRecommendedCover,
+  type ListingPhotoAnalysis,
+} from "../lib/ai-listing";
 import ScreenBackButton from "../components/screen-back-button";
+import ListingPhotoReviewCard from "../components/listing-photo-review-card";
 import {
   EMPTY_GARMENT_MEASUREMENTS,
   GarmentMeasurementsFields,
@@ -38,8 +44,11 @@ export default function CreateItemScreen() {
     ...EMPTY_GARMENT_MEASUREMENTS,
   });
   const [imageUris, setImageUris] = useState<string[]>([]);
+  const [photoAnalysis, setPhotoAnalysis] =
+    useState<ListingPhotoAnalysis | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [checkingPhotos, setCheckingPhotos] = useState(false);
 
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
   const CONDITIONS = ["New with tags", "Like new", "Good", "Fair"];
@@ -61,12 +70,14 @@ export default function CreateItemScreen() {
     });
 
     if (!result.canceled) {
+      setPhotoAnalysis(null);
       const uris = result.assets.map((asset) => asset.uri);
       setImageUris((prev) => [...prev, ...uris].slice(0, 5));
     }
   };
 
   const removeImage = (uri: string) => {
+    setPhotoAnalysis(null);
     setImageUris((prev) => prev.filter((u) => u !== uri));
   };
 
@@ -75,7 +86,45 @@ export default function CreateItemScreen() {
     const targetIndex = direction === "left" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= newUris.length) return;
     [newUris[index], newUris[targetIndex]] = [newUris[targetIndex], newUris[index]];
+    setPhotoAnalysis(null);
     setImageUris(newUris);
+  };
+
+  const handleAnalyzePhotos = async () => {
+    if (imageUris.length === 0) {
+      Alert.alert("Photos required", "Add at least one item photo first");
+      return;
+    }
+
+    setCheckingPhotos(true);
+
+    try {
+      const analysis = await analyzeListingPhotos(imageUris);
+      setPhotoAnalysis(analysis);
+    } catch (error) {
+      Alert.alert(
+        "Photo check unavailable",
+        error instanceof Error ? error.message : "Try again in a moment",
+      );
+    } finally {
+      setCheckingPhotos(false);
+    }
+  };
+
+  const handleUseRecommendedCover = () => {
+    if (!photoAnalysis) return;
+
+    try {
+      const applied = applyRecommendedCover(imageUris, photoAnalysis);
+      setImageUris(applied.imageUris);
+      setPhotoAnalysis(applied.analysis);
+    } catch (error) {
+      Alert.alert(
+        "Cover could not be changed",
+        error instanceof Error ? error.message : "Run the photo check again",
+      );
+      setPhotoAnalysis(null);
+    }
   };
 
   const handleGenerateDescription = async () => {
@@ -304,6 +353,50 @@ export default function CreateItemScreen() {
           <Text style={{ ...type.body, color: colors.inkMuted, fontSize: 12, marginTop: spacing.xs }}>
             First photo is your cover image
           </Text>
+        )}
+
+        {imageUris.length > 0 && !photoAnalysis && (
+          <TouchableOpacity
+            onPress={handleAnalyzePhotos}
+            disabled={checkingPhotos}
+            style={{
+              alignSelf: "flex-start",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+              backgroundColor: colors.wine,
+              borderRadius: 999,
+              paddingVertical: 9,
+              paddingHorizontal: 14,
+              marginTop: spacing.md,
+              opacity: checkingPhotos ? 0.65 : 1,
+            }}
+          >
+            {checkingPhotos && (
+              <ActivityIndicator size="small" color={colors.white} />
+            )}
+            <Text
+              style={{
+                color: colors.white,
+                fontWeight: "700",
+                fontSize: 12,
+              }}
+            >
+              {checkingPhotos
+                ? "Checking photos..."
+                : "✨ Check photos with Reloop AI"}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {photoAnalysis && (
+          <ListingPhotoReviewCard
+            analysis={photoAnalysis}
+            imageUris={imageUris}
+            checking={checkingPhotos}
+            onUseRecommendedCover={handleUseRecommendedCover}
+            onCheckAgain={handleAnalyzePhotos}
+          />
         )}
       </View>
 
