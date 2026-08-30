@@ -8,6 +8,7 @@ import { formatPKR } from "../../lib/currency";
 import FitConfidenceCard from "../../components/fit-confidence-card";
 import ConditionPassportCard from "../../components/condition-passport-card";
 import ScreenBackButton from "../../components/screen-back-button";
+import PaymentSheet from "../../components/payment-sheet";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -18,7 +19,7 @@ export default function ItemDetailScreen() {
   const [similarItems, setSimilarItems] = useState<any[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [buying, setBuying] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const loadItem = () => {
     fetch(`${API_URL}/items/${id}`)
@@ -50,28 +51,33 @@ export default function ItemDetailScreen() {
     loadItem();
   }, [id]);
 
-  const handleBuy = async () => {
+  const handleBuy = () => {
     if (!user) {
       Alert.alert("Log in required", "Log in to buy this item");
       router.push("/login");
       return;
     }
-    setBuying(true);
-    try {
-      const response = await fetch(`${API_URL}/items/${id}/buy?buyer_id=${user.id}`, { method: "POST" });
-      const data = await response.json();
-      if (!response.ok) {
-        Alert.alert("Could not buy", data.detail || "Something went wrong");
-        setBuying(false);
-        return;
-      }
-      Alert.alert("Purchased", `You bought "${item.title}"`);
-      loadItem();
-    } catch (error) {
-      Alert.alert("Error", "Could not connect to backend");
-    } finally {
-      setBuying(false);
+
+    setPaymentOpen(true);
+  };
+
+  const handleDirectPayment = async () => {
+    if (!user) {
+      throw new Error("Log in to buy this item.");
     }
+
+    const response = await fetch(
+      `${API_URL}/items/${id}/buy?buyer_id=${user.id}`,
+      { method: "POST" },
+    );
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Could not complete this purchase.");
+    }
+
+    Alert.alert("Purchased", `You bought "${item.title}"`);
+    loadItem();
   };
 
   if (loading) {
@@ -401,11 +407,10 @@ export default function ItemDetailScreen() {
             <View style={{ gap: 8 }}>
               <TouchableOpacity
                 onPress={handleBuy}
-                disabled={buying}
-                style={{ backgroundColor: colors.wine, padding: 13, borderRadius: radius.sm, opacity: buying ? 0.6 : 1 }}
+                style={{ backgroundColor: colors.wine, padding: 13, borderRadius: radius.sm }}
               >
                 <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-                  {buying ? "Processing..." : "Buy now"}
+                  Buy now
                 </Text>
               </TouchableOpacity>
 
@@ -428,6 +433,14 @@ export default function ItemDetailScreen() {
           )}
         </View>
       </View>
+
+      <PaymentSheet
+        visible={paymentOpen}
+        amount={Number(item.price)}
+        itemTitle={item.title}
+        onClose={() => setPaymentOpen(false)}
+        onConfirm={handleDirectPayment}
+      />
     </ScrollView>
   );
 }
