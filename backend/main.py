@@ -40,6 +40,14 @@ from ai_condition import (
     build_source_fingerprint,
 )
 
+from ai_listing import (
+    MAX_LISTING_PHOTOS,
+    MAX_PHOTO_BYTES as MAX_LISTING_PHOTO_BYTES,
+    ListingPhoto,
+    ListingPhotoDataError,
+    analyze_listing_photos,
+)
+
 
 from ai_descriptions import (
     AIConfigurationError,
@@ -208,6 +216,74 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.post("/ai/analyze-listing-photos")
+async def analyze_ai_listing_photos(
+    files: list[UploadFile] = File(...),
+):
+    if len(files) > MAX_LISTING_PHOTOS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Upload no more than {MAX_LISTING_PHOTOS} photos."
+            ),
+        )
+
+    photos: list[ListingPhoto] = []
+
+    for number, file in enumerate(files, start=1):
+        content_type = file.content_type or ""
+
+        if not content_type.startswith("image/"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Photo {number} must be a valid image.",
+            )
+
+        image_bytes = await file.read(
+            MAX_LISTING_PHOTO_BYTES + 1
+        )
+
+        if not image_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Photo {number} is empty.",
+            )
+
+        if len(image_bytes) > MAX_LISTING_PHOTO_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"Photo {number} must be 10 MB or smaller."
+                ),
+            )
+
+        photos.append(
+            ListingPhoto(
+                number=number,
+                image_bytes=image_bytes,
+                mime_type=content_type,
+            )
+        )
+
+    try:
+        analysis, model = await run_in_threadpool(
+            analyze_listing_photos,
+            photos,
+        )
+    except ListingPhotoDataError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AIConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "analysis": analysis.model_dump(),
+        "model": model,
+    }
+
 
 @app.post("/ai/generate-description")
 async def generate_ai_description(
