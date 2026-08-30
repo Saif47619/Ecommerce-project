@@ -722,6 +722,7 @@ def get_items(
             "inseam_in": item.inseam_in,
             "image_url": item.image_url,
             "is_sold": item.is_sold,
+            "buyer_id": item.buyer_id,
             "store_id": item.store_id,
             "photo_count": photo_count,
         })
@@ -776,6 +777,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
         "created_at": item.created_at,
         "image_url": item.image_url,
         "is_sold": item.is_sold,
+        "buyer_id": item.buyer_id,
         "store_id": item.store_id,
         "store": {
             "id": store.id,
