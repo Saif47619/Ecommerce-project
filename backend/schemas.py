@@ -17,6 +17,20 @@ class LoginRequest(BaseModel):
 class AISearchRequest(BaseModel):
     query: str = Field(min_length=2, max_length=300)
 
+
+class PriceGuidanceRequest(BaseModel):
+    title: str = Field(min_length=2, max_length=160)
+    category: str = Field(default="", max_length=60)
+    brand: str = Field(default="", max_length=80)
+    condition: str = Field(default="", max_length=40)
+    seller_price: Optional[float] = Field(
+        default=None,
+        gt=0,
+        le=100_000_000,
+    )
+    exclude_item_id: Optional[int] = Field(default=None, gt=0)
+
+
 class FitCheckRequest(BaseModel):
     item_id: int = Field(gt=0)
     preferred_fit: Literal[

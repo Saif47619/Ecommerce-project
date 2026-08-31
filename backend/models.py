@@ -1,4 +1,12 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from database import Base
 from sqlalchemy.dialects.postgresql import JSONB
@@ -170,4 +178,37 @@ class ConditionPassport(Base):
     item = relationship(
         "Item",
         back_populates="condition_passport",
+    )
+
+
+class PricingReference(Base):
+    __tablename__ = "pricing_references"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_name",
+            "source_listing_id",
+            name="uq_pricing_reference_source_listing",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_name = Column(String(100), nullable=False)
+    source_listing_id = Column(String(200), nullable=False)
+    source_url = Column(String, nullable=True)
+    title = Column(String(200), nullable=False)
+    category = Column(String(80), nullable=True)
+    brand = Column(String(100), nullable=True)
+    condition = Column(String(40), nullable=True)
+    price_pkr = Column(Float, nullable=False)
+    reference_type = Column(String(20), nullable=False)
+    observed_at = Column(DateTime, nullable=False)
+    is_verified = Column(Boolean, nullable=False, default=False)
+    verified_by = Column(String(120), nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )

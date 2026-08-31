@@ -18,6 +18,7 @@ from models import (
     Message,
     ItemImage,
     ConditionPassport,
+    PricingReference,
 )
 from database import engine, SessionLocal, Base
 
@@ -59,6 +60,12 @@ from ai_descriptions import (
 )
 
 from ai_search import interpret_search_query
+from ai_pricing import (
+    ComparableListing,
+    PricingTarget,
+    estimate_price_guidance,
+)
+from pricing_references import reference_cutoff
 
 from auth import hash_password, verify_password
 from schemas import (
@@ -71,6 +78,7 @@ from schemas import (
     OfferResponse,
     AISearchRequest,
     FitCheckRequest,
+    PriceGuidanceRequest,
 )
 
 app = FastAPI()
@@ -558,6 +566,71 @@ async def interpret_ai_search(request: AISearchRequest):
         "intent": intent.model_dump(),
         "model": model,
     }
+
+
+@app.post("/ai/price-guidance")
+def get_ai_price_guidance(
+    request: PriceGuidanceRequest,
+    db: Session = Depends(get_db),
+):
+    items = (
+        db.query(Item)
+        .order_by(Item.created_at.desc())
+        .limit(500)
+        .all()
+    )
+    market_references = (
+        db.query(PricingReference)
+        .filter(
+            PricingReference.is_verified.is_(True),
+            PricingReference.observed_at >= reference_cutoff(),
+        )
+        .order_by(PricingReference.observed_at.desc())
+        .limit(1000)
+        .all()
+    )
+    comparables = [
+        ComparableListing(
+            item_id=item.id,
+            title=item.title or "",
+            price=float(item.price),
+            category=item.category or "",
+            brand=item.brand or "",
+            condition=item.condition or "",
+            is_sold=bool(item.is_sold),
+            source_name="Reloop marketplace",
+        )
+        for item in items
+    ]
+    comparables.extend(
+        ComparableListing(
+            item_id=None,
+            reference_id=reference.id,
+            source_name=reference.source_name,
+            source_url=reference.source_url,
+            title=reference.title,
+            price=float(reference.price_pkr),
+            category=reference.category or "",
+            brand=reference.brand or "",
+            condition=reference.condition or "",
+            is_sold=reference.reference_type == "sold",
+        )
+        for reference in market_references
+    )
+    guidance = estimate_price_guidance(
+        PricingTarget(
+            title=request.title,
+            category=request.category,
+            brand=request.brand,
+            condition=request.condition,
+            seller_price=request.seller_price,
+            exclude_item_id=request.exclude_item_id,
+        ),
+        comparables,
+    )
+
+    return guidance.model_dump()
+
 
 @app.post("/ai/fit-check")
 async def check_ai_fit(
