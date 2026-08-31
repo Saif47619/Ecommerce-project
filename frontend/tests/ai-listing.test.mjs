@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { applyRecommendedCover } from "../src/lib/ai-listing.ts";
+import {
+  applyRecommendedCover,
+  reviewListingDraft,
+} from "../src/lib/ai-listing.ts";
 
 
 function makeAnalysis(recommendedCover) {
@@ -94,5 +97,47 @@ test("rejects a stale cover recommendation", () => {
         makeAnalysis(4),
       ),
     /no longer matches/,
+  );
+});
+
+
+test("preserves full listing-review fields after applying a cover", () => {
+  const analysis = {
+    ...makeAnalysis(3),
+    same_item_consistency: "consistent",
+    same_item_reason: "All photos show the same item.",
+    detail_checks: [],
+    review_status: "needs_changes",
+    required_changes: ["Add a back photo."],
+    manual_review_reasons: [],
+  };
+
+  const result = applyRecommendedCover(
+    ["first.jpg", "second.jpg", "third.jpg"],
+    analysis,
+  );
+
+  assert.equal(result.analysis.review_status, "needs_changes");
+  assert.deepEqual(
+    result.analysis.required_changes,
+    ["Add a back photo."],
+  );
+});
+
+
+test("requires a title before attempting the full listing review", async () => {
+  await assert.rejects(
+    reviewListingDraft(
+      ["photo.jpg"],
+      {
+        title: " ",
+        category: "Outerwear",
+        brand: "Unbranded",
+        color: "Blue",
+        condition: "Good",
+        size: "L",
+      },
+    ),
+    /clear item title/,
   );
 });

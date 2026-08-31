@@ -11,6 +11,25 @@ export type ListingPhotoView =
   | "unknown";
 export type ListingItemVisibility = "clear" | "partial" | "unclear";
 export type ListingPhotoCoverage = "strong" | "partial" | "limited";
+export type ListingReviewStatus =
+  | "ready"
+  | "needs_changes"
+  | "manual_review";
+export type SameItemConsistency =
+  | "consistent"
+  | "unclear"
+  | "mismatch";
+export type ListingDetailStatus =
+  | "supported"
+  | "mismatch"
+  | "not_verifiable";
+export type ListingDetailField =
+  | "title"
+  | "category"
+  | "brand"
+  | "color"
+  | "condition"
+  | "size";
 
 export type ListingPhotoReview = {
   photo_number: number;
@@ -30,25 +49,48 @@ export type ListingPhotoAnalysis = {
   missing_photos: string[];
 };
 
+export type ListingDraftDetails = {
+  title: string;
+  category: string;
+  brand: string;
+  color: string;
+  condition: string;
+  size: string;
+};
+
+export type ListingDetailReview = {
+  field: ListingDetailField;
+  status: ListingDetailStatus;
+  visible_value: string | null;
+  reason: string;
+  seller_value: string;
+};
+
+export type ListingDraftAnalysis = ListingPhotoAnalysis & {
+  same_item_consistency: SameItemConsistency;
+  same_item_reason: string;
+  detail_checks: ListingDetailReview[];
+  review_status: ListingReviewStatus;
+  required_changes: string[];
+  manual_review_reasons: string[];
+};
+
 type ListingPhotoAnalysisResponse = {
   analysis?: ListingPhotoAnalysis;
   model?: string;
   detail?: string;
 };
 
-export async function analyzeListingPhotos(
+type ListingDraftAnalysisResponse = {
+  analysis?: ListingDraftAnalysis;
+  model?: string;
+  detail?: string;
+};
+
+async function appendListingPhotos(
+  formData: FormData,
   imageUris: string[],
-): Promise<ListingPhotoAnalysis> {
-  if (imageUris.length === 0) {
-    throw new Error("Add at least one photo before running the AI check");
-  }
-
-  if (imageUris.length > 5) {
-    throw new Error("A maximum of five photos can be checked");
-  }
-
-  const formData = new FormData();
-
+) {
   for (let index = 0; index < imageUris.length; index += 1) {
     const imageResponse = await fetch(imageUris[index]);
 
@@ -67,6 +109,21 @@ export async function analyzeListingPhotos(
       `listing-photo-${index + 1}.jpg`,
     );
   }
+}
+
+export async function analyzeListingPhotos(
+  imageUris: string[],
+): Promise<ListingPhotoAnalysis> {
+  if (imageUris.length === 0) {
+    throw new Error("Add at least one photo before running the AI check");
+  }
+
+  if (imageUris.length > 5) {
+    throw new Error("A maximum of five photos can be checked");
+  }
+
+  const formData = new FormData();
+  await appendListingPhotos(formData, imageUris);
 
   const response = await fetch(`${API_URL}/ai/analyze-listing-photos`, {
     method: "POST",
@@ -87,12 +144,59 @@ export async function analyzeListingPhotos(
   return data.analysis;
 }
 
-export function applyRecommendedCover(
+export async function reviewListingDraft(
   imageUris: string[],
-  analysis: ListingPhotoAnalysis,
+  details: ListingDraftDetails,
+): Promise<ListingDraftAnalysis> {
+  if (imageUris.length === 0) {
+    throw new Error("Add at least one photo before reviewing the listing");
+  }
+
+  if (imageUris.length > 5) {
+    throw new Error("A maximum of five photos can be reviewed");
+  }
+
+  if (details.title.trim().length < 2) {
+    throw new Error("Add a clear item title before reviewing the listing");
+  }
+
+  const formData = new FormData();
+  await appendListingPhotos(formData, imageUris);
+
+  for (const [field, value] of Object.entries(details)) {
+    formData.append(field, value.trim());
+  }
+
+  const response = await fetch(`${API_URL}/ai/review-listing`, {
+    method: "POST",
+    body: formData,
+  });
+  const data: ListingDraftAnalysisResponse = await response
+    .json()
+    .catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Could not review the listing");
+  }
+
+  if (
+    !data.analysis ||
+    !Array.isArray(data.analysis.photos) ||
+    !Array.isArray(data.analysis.detail_checks) ||
+    !data.analysis.review_status
+  ) {
+    throw new Error("Reloop AI returned an incomplete listing review");
+  }
+
+  return data.analysis;
+}
+
+export function applyRecommendedCover<T extends ListingPhotoAnalysis>(
+  imageUris: string[],
+  analysis: T,
 ): {
   imageUris: string[];
-  analysis: ListingPhotoAnalysis;
+  analysis: T;
 } {
   const recommendedNumber = analysis.recommended_cover_photo_number;
 
@@ -129,6 +233,6 @@ export function applyRecommendedCover(
       ...analysis,
       recommended_cover_photo_number: 1,
       photos: reorderedReviews,
-    },
+    } as T,
   };
 }

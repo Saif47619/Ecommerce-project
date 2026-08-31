@@ -8,13 +8,16 @@ import {
 
 import { cardShadow, colors, radius, spacing, type } from "../constants/reloop-theme";
 import type {
-  ListingPhotoAnalysis,
+  ListingDraftAnalysis,
+  ListingDetailField,
+  ListingDetailStatus,
   ListingPhotoQuality,
+  ListingReviewStatus,
 } from "../lib/ai-listing";
 
 
 type ListingPhotoReviewCardProps = {
-  analysis: ListingPhotoAnalysis;
+  analysis: ListingDraftAnalysis;
   imageUris: string[];
   checking: boolean;
   onUseRecommendedCover: () => void;
@@ -52,6 +55,51 @@ const COVERAGE_LABELS = {
   limited: "Limited coverage",
 };
 
+const STATUS_DETAILS: Record<
+  ListingReviewStatus,
+  { label: string; message: string; backgroundColor: string; color: string }
+> = {
+  ready: {
+    label: "Ready",
+    message: "The visible photos and entered details look consistent.",
+    backgroundColor: "#F2F5EE",
+    color: colors.sage,
+  },
+  needs_changes: {
+    label: "Needs changes",
+    message: "Fix the items below, then run the review again.",
+    backgroundColor: "#FFF3E4",
+    color: colors.wine,
+  },
+  manual_review: {
+    label: "Manual review",
+    message: "Nothing is proven wrong, but this listing needs a human check.",
+    backgroundColor: "#FFF8E7",
+    color: colors.brass,
+  },
+};
+
+const DETAIL_STATUS_LABELS: Record<ListingDetailStatus, string> = {
+  supported: "Matches photos",
+  mismatch: "Needs correction",
+  not_verifiable: "Not visible in photos",
+};
+
+const DETAIL_STATUS_COLORS: Record<ListingDetailStatus, string> = {
+  supported: colors.sage,
+  mismatch: colors.wine,
+  not_verifiable: colors.inkMuted,
+};
+
+const FIELD_LABELS: Record<ListingDetailField, string> = {
+  title: "Title",
+  category: "Category",
+  brand: "Brand",
+  color: "Color",
+  condition: "Condition",
+  size: "Size",
+};
+
 
 export default function ListingPhotoReviewCard({
   analysis,
@@ -62,6 +110,7 @@ export default function ListingPhotoReviewCard({
 }: ListingPhotoReviewCardProps) {
   const recommendedNumber = analysis.recommended_cover_photo_number;
   const recommendedAlreadyFirst = recommendedNumber === 1;
+  const statusDetails = STATUS_DETAILS[analysis.review_status];
 
   return (
     <View
@@ -86,7 +135,7 @@ export default function ListingPhotoReviewCard({
       >
         <View style={{ flex: 1 }}>
           <Text style={{ ...type.h2, color: colors.ink }}>
-            ✨ Reloop AI Photo Check
+            ✨ Reloop AI Listing Review
           </Text>
           <Text
             style={{
@@ -118,6 +167,134 @@ export default function ListingPhotoReviewCard({
             {COVERAGE_LABELS[analysis.photo_coverage]}
           </Text>
         </View>
+      </View>
+
+      <View
+        style={{
+          backgroundColor: statusDetails.backgroundColor,
+          borderRadius: radius.sm,
+          padding: spacing.sm,
+          borderLeftWidth: 3,
+          borderLeftColor: statusDetails.color,
+        }}
+      >
+        <Text
+          style={{
+            color: statusDetails.color,
+            fontWeight: "800",
+            fontSize: 13,
+          }}
+        >
+          {statusDetails.label}
+        </Text>
+        <Text style={{ color: colors.inkMuted, fontSize: 11, marginTop: 3 }}>
+          {statusDetails.message}
+        </Text>
+      </View>
+
+      {analysis.required_changes.length > 0 && (
+        <View
+          style={{
+            backgroundColor: "#FFF3E4",
+            borderRadius: radius.sm,
+            padding: spacing.sm,
+          }}
+        >
+          <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 12 }}>
+            Fix before approval
+          </Text>
+          {analysis.required_changes.map((change) => (
+            <Text
+              key={change}
+              style={{ color: colors.inkMuted, fontSize: 11, marginTop: 4 }}
+            >
+              • {change}
+            </Text>
+          ))}
+        </View>
+      )}
+
+      {analysis.manual_review_reasons.length > 0 && (
+        <View
+          style={{
+            backgroundColor: "#FFF8E7",
+            borderRadius: radius.sm,
+            padding: spacing.sm,
+          }}
+        >
+          <Text style={{ color: colors.brass, fontWeight: "700", fontSize: 12 }}>
+            Why a person should check this
+          </Text>
+          {analysis.manual_review_reasons.map((reason) => (
+            <Text
+              key={reason}
+              style={{ color: colors.inkMuted, fontSize: 11, marginTop: 4 }}
+            >
+              • {reason}
+            </Text>
+          ))}
+        </View>
+      )}
+
+      <View
+        style={{
+          backgroundColor: colors.background,
+          borderRadius: radius.sm,
+          padding: spacing.sm,
+        }}
+      >
+        <Text style={{ color: colors.ink, fontWeight: "700", fontSize: 11 }}>
+          Same-item check · {analysis.same_item_consistency.replaceAll("_", " ")}
+        </Text>
+        <Text style={{ color: colors.inkMuted, fontSize: 11, marginTop: 3 }}>
+          {analysis.same_item_reason}
+        </Text>
+      </View>
+
+      <View style={{ gap: spacing.xs }}>
+        <Text style={{ color: colors.ink, fontWeight: "700", fontSize: 12 }}>
+          Listing details vs photos
+        </Text>
+        {analysis.detail_checks.map((check) => (
+          <View
+            key={check.field}
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+              paddingTop: spacing.xs,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: spacing.xs,
+              }}
+            >
+              <Text style={{ color: colors.ink, fontWeight: "700", fontSize: 11 }}>
+                {FIELD_LABELS[check.field]} · {check.seller_value}
+              </Text>
+              <Text
+                style={{
+                  color: DETAIL_STATUS_COLORS[check.status],
+                  fontWeight: "700",
+                  fontSize: 10,
+                }}
+              >
+                {DETAIL_STATUS_LABELS[check.status]}
+              </Text>
+            </View>
+            {check.visible_value && check.visible_value !== check.seller_value && (
+              <Text style={{ color: colors.inkMuted, fontSize: 10, marginTop: 2 }}>
+                Visible: {check.visible_value}
+              </Text>
+            )}
+            <Text style={{ color: colors.inkMuted, fontSize: 10, marginTop: 2 }}>
+              {check.reason}
+            </Text>
+          </View>
+        ))}
       </View>
 
       {recommendedNumber === null ? (
@@ -272,12 +449,13 @@ export default function ListingPhotoReviewCard({
       >
         {checking && <ActivityIndicator size="small" color={colors.wine} />}
         <Text style={{ color: colors.wine, fontWeight: "700", fontSize: 11 }}>
-          {checking ? "Checking photos..." : "Check photos again"}
+          {checking ? "Reviewing listing..." : "Review listing again"}
         </Text>
       </TouchableOpacity>
 
       <Text style={{ color: colors.inkMuted, fontSize: 10 }}>
-        AI reviews visible photo quality only. You decide what to publish.
+        AI checks visible evidence only. It does not prove authenticity or assess
+        price yet. You decide what to publish.
       </Text>
     </View>
   );

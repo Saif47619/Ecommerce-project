@@ -16,9 +16,9 @@ import { useAuth } from "../context/auth-context";
 import { colors, spacing, radius, type } from "../constants/reloop-theme";
 import { generateAiDescription } from "../lib/ai-description";
 import {
-  analyzeListingPhotos,
   applyRecommendedCover,
-  type ListingPhotoAnalysis,
+  reviewListingDraft,
+  type ListingDraftAnalysis,
 } from "../lib/ai-listing";
 import ScreenBackButton from "../components/screen-back-button";
 import ListingPhotoReviewCard from "../components/listing-photo-review-card";
@@ -44,11 +44,11 @@ export default function CreateItemScreen() {
     ...EMPTY_GARMENT_MEASUREMENTS,
   });
   const [imageUris, setImageUris] = useState<string[]>([]);
-  const [photoAnalysis, setPhotoAnalysis] =
-    useState<ListingPhotoAnalysis | null>(null);
+  const [listingAnalysis, setListingAnalysis] =
+    useState<ListingDraftAnalysis | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [checkingPhotos, setCheckingPhotos] = useState(false);
+  const [reviewingListing, setReviewingListing] = useState(false);
 
   const CATEGORIES = ["Women", "Men", "Kids", "Shoes", "Accessories", "Outerwear"];
   const CONDITIONS = ["New with tags", "Like new", "Good", "Fair"];
@@ -70,14 +70,14 @@ export default function CreateItemScreen() {
     });
 
     if (!result.canceled) {
-      setPhotoAnalysis(null);
+      setListingAnalysis(null);
       const uris = result.assets.map((asset) => asset.uri);
       setImageUris((prev) => [...prev, ...uris].slice(0, 5));
     }
   };
 
   const removeImage = (uri: string) => {
-    setPhotoAnalysis(null);
+    setListingAnalysis(null);
     setImageUris((prev) => prev.filter((u) => u !== uri));
   };
 
@@ -86,44 +86,56 @@ export default function CreateItemScreen() {
     const targetIndex = direction === "left" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= newUris.length) return;
     [newUris[index], newUris[targetIndex]] = [newUris[targetIndex], newUris[index]];
-    setPhotoAnalysis(null);
+    setListingAnalysis(null);
     setImageUris(newUris);
   };
 
-  const handleAnalyzePhotos = async () => {
+  const handleReviewListing = async () => {
     if (imageUris.length === 0) {
       Alert.alert("Photos required", "Add at least one item photo first");
       return;
     }
 
-    setCheckingPhotos(true);
+    if (title.trim().length < 2) {
+      Alert.alert("Title required", "Add a clear item title before running the review");
+      return;
+    }
+
+    setReviewingListing(true);
 
     try {
-      const analysis = await analyzeListingPhotos(imageUris);
-      setPhotoAnalysis(analysis);
+      const analysis = await reviewListingDraft(imageUris, {
+        title,
+        category,
+        brand,
+        color,
+        condition,
+        size,
+      });
+      setListingAnalysis(analysis);
     } catch (error) {
       Alert.alert(
-        "Photo check unavailable",
+        "Listing review unavailable",
         error instanceof Error ? error.message : "Try again in a moment",
       );
     } finally {
-      setCheckingPhotos(false);
+      setReviewingListing(false);
     }
   };
 
   const handleUseRecommendedCover = () => {
-    if (!photoAnalysis) return;
+    if (!listingAnalysis) return;
 
     try {
-      const applied = applyRecommendedCover(imageUris, photoAnalysis);
+      const applied = applyRecommendedCover(imageUris, listingAnalysis);
       setImageUris(applied.imageUris);
-      setPhotoAnalysis(applied.analysis);
+      setListingAnalysis(applied.analysis);
     } catch (error) {
       Alert.alert(
         "Cover could not be changed",
         error instanceof Error ? error.message : "Run the photo check again",
       );
-      setPhotoAnalysis(null);
+      setListingAnalysis(null);
     }
   };
 
@@ -355,49 +367,6 @@ export default function CreateItemScreen() {
           </Text>
         )}
 
-        {imageUris.length > 0 && !photoAnalysis && (
-          <TouchableOpacity
-            onPress={handleAnalyzePhotos}
-            disabled={checkingPhotos}
-            style={{
-              alignSelf: "flex-start",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.xs,
-              backgroundColor: colors.wine,
-              borderRadius: 999,
-              paddingVertical: 9,
-              paddingHorizontal: 14,
-              marginTop: spacing.md,
-              opacity: checkingPhotos ? 0.65 : 1,
-            }}
-          >
-            {checkingPhotos && (
-              <ActivityIndicator size="small" color={colors.white} />
-            )}
-            <Text
-              style={{
-                color: colors.white,
-                fontWeight: "700",
-                fontSize: 12,
-              }}
-            >
-              {checkingPhotos
-                ? "Checking photos..."
-                : "✨ Check photos with Reloop AI"}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {photoAnalysis && (
-          <ListingPhotoReviewCard
-            analysis={photoAnalysis}
-            imageUris={imageUris}
-            checking={checkingPhotos}
-            onUseRecommendedCover={handleUseRecommendedCover}
-            onCheckAgain={handleAnalyzePhotos}
-          />
-        )}
       </View>
 
       {/* About your item */}
@@ -408,7 +377,10 @@ export default function CreateItemScreen() {
             placeholder="e.g. Blue Denim Jacket"
             placeholderTextColor={colors.inkMuted}
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(value) => {
+              setTitle(value);
+              setListingAnalysis(null);
+            }}
             style={fieldInputStyle}
           />
         </FieldRow>
@@ -458,6 +430,7 @@ export default function CreateItemScreen() {
               <TouchableOpacity
                 key={b}
                 onPress={() => {
+                  setListingAnalysis(null);
                   if (b === "Other") {
                     setShowCustomBrand(true);
                     setBrand("");
@@ -484,7 +457,10 @@ export default function CreateItemScreen() {
               placeholder="Type brand name"
               placeholderTextColor={colors.inkMuted}
               value={brand}
-              onChangeText={setBrand}
+              onChangeText={(value) => {
+                setBrand(value);
+                setListingAnalysis(null);
+              }}
               style={fieldInputStyle}
             />
           )}
@@ -494,7 +470,10 @@ export default function CreateItemScreen() {
             placeholder="M, 9, etc."
             placeholderTextColor={colors.inkMuted}
             value={size}
-            onChangeText={setSize}
+            onChangeText={(value) => {
+              setSize(value);
+              setListingAnalysis(null);
+            }}
             style={fieldInputStyle}
           />
         </FieldRow>
@@ -503,7 +482,10 @@ export default function CreateItemScreen() {
             placeholder="e.g. Turquoise, Black"
             placeholderTextColor={colors.inkMuted}
             value={color}
-            onChangeText={setColor}
+            onChangeText={(value) => {
+              setColor(value);
+              setListingAnalysis(null);
+            }}
             style={fieldInputStyle}
           />
         </FieldRow>
@@ -514,7 +496,10 @@ export default function CreateItemScreen() {
             {CATEGORIES.map((c) => (
               <TouchableOpacity
                 key={c}
-                onPress={() => setCategory(c)}
+                onPress={() => {
+                  setCategory(c);
+                  setListingAnalysis(null);
+                }}
                 style={{
                   paddingVertical: 7,
                   paddingHorizontal: 14,
@@ -536,7 +521,10 @@ export default function CreateItemScreen() {
             {CONDITIONS.map((c) => (
               <TouchableOpacity
                 key={c}
-                onPress={() => setCondition(c)}
+                onPress={() => {
+                  setCondition(c);
+                  setListingAnalysis(null);
+                }}
                 style={{
                   paddingVertical: 7,
                   paddingHorizontal: 14,
@@ -571,6 +559,83 @@ export default function CreateItemScreen() {
             style={fieldInputStyle}
           />
         </FieldRow>
+      </View>
+
+      <SectionLabel text="Reloop AI review" />
+      <View
+        style={{
+          paddingHorizontal: spacing.lg,
+          marginBottom: spacing.xl,
+        }}
+      >
+        {!listingAnalysis && (
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+              padding: spacing.md,
+            }}
+          >
+            <Text style={{ ...type.h2, color: colors.ink }}>
+              Check before you list
+            </Text>
+            <Text
+              style={{
+                ...type.body,
+                color: colors.inkMuted,
+                fontSize: 12,
+                marginTop: 4,
+              }}
+            >
+              AI checks photo quality, recommends a cover, compares your entered
+              details with visible evidence, and flags anything that needs attention.
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleReviewListing}
+              disabled={reviewingListing}
+              style={{
+                alignSelf: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.xs,
+                backgroundColor: colors.wine,
+                borderRadius: 999,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                marginTop: spacing.md,
+                opacity: reviewingListing ? 0.65 : 1,
+              }}
+            >
+              {reviewingListing && (
+                <ActivityIndicator size="small" color={colors.white} />
+              )}
+              <Text
+                style={{
+                  color: colors.white,
+                  fontWeight: "700",
+                  fontSize: 12,
+                }}
+              >
+                {reviewingListing
+                  ? "Reviewing listing..."
+                  : "✨ Review listing with Reloop AI"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {listingAnalysis && (
+          <ListingPhotoReviewCard
+            analysis={listingAnalysis}
+            imageUris={imageUris}
+            checking={reviewingListing}
+            onUseRecommendedCover={handleUseRecommendedCover}
+            onCheckAgain={handleReviewListing}
+          />
+        )}
       </View>
 
       <TouchableOpacity
