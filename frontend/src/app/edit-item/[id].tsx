@@ -13,8 +13,14 @@ import { useLocalSearchParams, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
-import { generateAiDescription } from "../../lib/ai-description";
+import { generateSavedItemAiDescription } from "../../lib/ai-description";
 import ScreenBackButton from "../../components/screen-back-button";
+import ListingPhotoReviewCard from "../../components/listing-photo-review-card";
+import {
+  applyRecommendedCover,
+  reviewSavedListingDraft,
+  type ListingDraftAnalysis,
+} from "../../lib/ai-listing";
 import {
   EMPTY_GARMENT_MEASUREMENTS,
   GarmentMeasurementsFields,
@@ -49,6 +55,27 @@ export default function EditItemScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [isSold, setIsSold] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [listingAnalysis, setListingAnalysis] =
+    useState<ListingDraftAnalysis | null>(null);
+  const [reviewingListing, setReviewingListing] = useState(false);
+
+  const getReviewImageUris = () => {
+    if (images.length > 0) {
+      return images.map((image) =>
+        image.image_url.startsWith("http")
+          ? image.image_url
+          : `${API_URL}${image.image_url}`,
+      );
+    }
+
+    if (!imageUrl) return [];
+
+    return [
+      imageUrl.startsWith("http")
+        ? imageUrl
+        : `${API_URL}${imageUrl}`,
+    ];
+  };
 
   const loadImages = () => {
     fetch(`${API_URL}/items/${id}/images`)
@@ -102,6 +129,7 @@ export default function EditItemScreen() {
       throw new Error(data.detail || "Could not delete photo");
     }
 
+    setListingAnalysis(null);
     setImageUrl(data.image_url || "");
     loadImages();
   } catch (error) {
@@ -141,6 +169,7 @@ export default function EditItemScreen() {
 
   setImages(newImages);
   setImageUrl(newImages[0]?.image_url || "");
+  setListingAnalysis(null);
 
   try {
     const orderedIds = newImages.map(
@@ -206,11 +235,103 @@ export default function EditItemScreen() {
         body: formData,
       });
 
+      setListingAnalysis(null);
       loadImages();
     } catch (error) {
       Alert.alert("Error", "Could not upload photos");
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  const handleReviewListing = async () => {
+    const reviewImageUris = getReviewImageUris();
+
+    if (reviewImageUris.length === 0) {
+      Alert.alert("Photos required", "Add at least one item photo first");
+      return;
+    }
+
+    if (title.trim().length < 2) {
+      Alert.alert("Title required", "Add a clear item title before running the review");
+      return;
+    }
+
+    setReviewingListing(true);
+
+    try {
+      const itemId = Number(Array.isArray(id) ? id[0] : id);
+      const analysis = await reviewSavedListingDraft(
+        itemId,
+        {
+          title,
+          category,
+          brand,
+          color,
+          condition,
+          size,
+        },
+      );
+      setListingAnalysis(analysis);
+    } catch (error) {
+      Alert.alert(
+        "Listing review unavailable",
+        error instanceof Error ? error.message : "Try again in a moment",
+      );
+    } finally {
+      setReviewingListing(false);
+    }
+  };
+
+  const handleUseRecommendedCover = async () => {
+    if (!listingAnalysis) return;
+
+    const recommendedNumber =
+      listingAnalysis.recommended_cover_photo_number;
+
+    if (recommendedNumber === null || recommendedNumber === 1) return;
+
+    try {
+      const reviewImageUris = getReviewImageUris();
+      const applied = applyRecommendedCover(
+        reviewImageUris,
+        listingAnalysis,
+      );
+      const selectedIndex = recommendedNumber - 1;
+
+      if (selectedIndex < 0 || selectedIndex >= images.length) {
+        throw new Error("The recommended cover no longer matches these photos");
+      }
+
+      const reorderedImages = [...images];
+      const [recommendedImage] = reorderedImages.splice(selectedIndex, 1);
+      reorderedImages.unshift(recommendedImage);
+
+      const response = await fetch(
+        `${API_URL}/items/${id}/reorder-images`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            reorderedImages.map((image) => image.id),
+          ),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Could not save the recommended cover");
+      }
+
+      setImages(reorderedImages);
+      setImageUrl(reorderedImages[0]?.image_url || "");
+      setListingAnalysis(applied.analysis);
+    } catch (error) {
+      Alert.alert(
+        "Cover could not be changed",
+        error instanceof Error ? error.message : "Run the listing review again",
+      );
+      setListingAnalysis(null);
+      loadImages();
     }
   };
 
@@ -222,15 +343,18 @@ export default function EditItemScreen() {
 
     setGeneratingDescription(true);
     try {
-      const coverImageUri = imageUrl.startsWith("http") ? imageUrl : `${API_URL}${imageUrl}`;
-      const generated = await generateAiDescription(coverImageUri, {
-        title,
-        category,
-        brand,
-        condition,
-        color,
-        size,
-      });
+      const itemId = Number(Array.isArray(id) ? id[0] : id);
+      const generated = await generateSavedItemAiDescription(
+        itemId,
+        {
+          title,
+          category,
+          brand,
+          condition,
+          color,
+          size,
+        },
+      );
       setDescription(generated);
     } catch (error) {
       Alert.alert(
@@ -455,7 +579,10 @@ export default function EditItemScreen() {
       <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Title</Text>
       <TextInput
         value={title}
-        onChangeText={setTitle}
+        onChangeText={(value) => {
+          setTitle(value);
+          setListingAnalysis(null);
+        }}
         style={{
           backgroundColor: colors.surface,
           borderWidth: 1,
@@ -514,6 +641,7 @@ export default function EditItemScreen() {
           <TouchableOpacity
             key={b}
             onPress={() => {
+              setListingAnalysis(null);
               if (b === "Other") {
                 setShowCustomBrand(true);
                 setBrand("");
@@ -542,7 +670,10 @@ export default function EditItemScreen() {
           placeholder="Type brand name"
           placeholderTextColor={colors.inkMuted}
           value={brand}
-          onChangeText={setBrand}
+          onChangeText={(value) => {
+            setBrand(value);
+            setListingAnalysis(null);
+          }}
           style={{
             backgroundColor: colors.surface,
             borderWidth: 1,
@@ -560,7 +691,10 @@ export default function EditItemScreen() {
         placeholder="e.g. Turquoise, Black"
         placeholderTextColor={colors.inkMuted}
         value={color}
-        onChangeText={setColor}
+        onChangeText={(value) => {
+          setColor(value);
+          setListingAnalysis(null);
+        }}
         style={{
           backgroundColor: colors.surface,
           borderWidth: 1,
@@ -577,7 +711,10 @@ export default function EditItemScreen() {
         {CATEGORIES.map((c) => (
           <TouchableOpacity
             key={c}
-            onPress={() => setCategory(c)}
+            onPress={() => {
+              setCategory(c);
+              setListingAnalysis(null);
+            }}
             style={{
               paddingVertical: 8,
               paddingHorizontal: 14,
@@ -599,7 +736,10 @@ export default function EditItemScreen() {
         {CONDITIONS.map((c) => (
           <TouchableOpacity
             key={c}
-            onPress={() => setCondition(c)}
+            onPress={() => {
+              setCondition(c);
+              setListingAnalysis(null);
+            }}
             style={{
               paddingVertical: 8,
               paddingHorizontal: 14,
@@ -642,7 +782,10 @@ export default function EditItemScreen() {
           <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Size</Text>
           <TextInput
             value={size}
-            onChangeText={setSize}
+            onChangeText={(value) => {
+              setSize(value);
+              setListingAnalysis(null);
+            }}
             style={{
               backgroundColor: colors.surface,
               borderWidth: 1,
@@ -654,6 +797,79 @@ export default function EditItemScreen() {
           />
         </View>
       </View>
+
+      <Text
+        style={{
+          ...type.label,
+          color: colors.inkMuted,
+          marginBottom: spacing.xs,
+        }}
+      >
+        Reloop AI review
+      </Text>
+
+      {!listingAnalysis ? (
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: radius.md,
+            padding: spacing.md,
+            marginBottom: spacing.lg,
+          }}
+        >
+          <Text style={{ ...type.h2, color: colors.ink }}>
+            Recheck your updated listing
+          </Text>
+          <Text
+            style={{
+              ...type.body,
+              color: colors.inkMuted,
+              fontSize: 12,
+              marginTop: 4,
+            }}
+          >
+            AI checks the current photos, cover, and entered details after your
+            edits.
+          </Text>
+          <TouchableOpacity
+            onPress={handleReviewListing}
+            disabled={reviewingListing}
+            style={{
+              alignSelf: "flex-start",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+              backgroundColor: colors.wine,
+              borderRadius: 999,
+              paddingVertical: 10,
+              paddingHorizontal: 14,
+              marginTop: spacing.md,
+              opacity: reviewingListing ? 0.65 : 1,
+            }}
+          >
+            {reviewingListing && (
+              <ActivityIndicator size="small" color={colors.white} />
+            )}
+            <Text style={{ color: colors.white, fontWeight: "700", fontSize: 12 }}>
+              {reviewingListing
+                ? "Reviewing listing..."
+                : "✨ Review updates with Reloop AI"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ marginBottom: spacing.lg }}>
+          <ListingPhotoReviewCard
+            analysis={listingAnalysis}
+            imageUris={getReviewImageUris()}
+            checking={reviewingListing}
+            onUseRecommendedCover={handleUseRecommendedCover}
+            onCheckAgain={handleReviewListing}
+          />
+        </View>
+      )}
 
       <TouchableOpacity
         onPress={handleSave}
