@@ -266,20 +266,18 @@ def test_duplicate_photo_review_is_rejected():
         )
 
 
-def test_poor_photo_cannot_be_recommended_as_cover():
+def test_poor_cover_recommendation_is_safely_removed():
     output = json.loads(valid_output())
     output["photos"][0]["quality"] = "poor"
     output["photos"][0]["item_visibility"] = "unclear"
     client = FakeClient(json.dumps(output))
 
-    with pytest.raises(
-        AIGenerationError,
-        match="could not review",
-    ):
-        analyze_listing_photos(
-            [make_photo(1), make_photo(2)],
-            client=client,
-        )
+    analysis, _ = analyze_listing_photos(
+        [make_photo(1), make_photo(2)],
+        client=client,
+    )
+
+    assert analysis.recommended_cover_photo_number is None
 
 
 def test_null_cover_is_allowed_when_all_photos_are_poor():
@@ -453,17 +451,15 @@ def test_full_review_requires_a_real_title():
     assert client.interactions.request is None
 
 
-def test_promotional_photo_cannot_be_selected_as_cover():
+def test_promotional_cover_recommendation_is_safely_removed():
     output = json.loads(valid_output())
     output["photos"][0]["issues"] = [
         "promotional_or_stock_like"
     ]
 
-    with pytest.raises(
-        AIGenerationError,
-        match="could not review",
-    ):
-        analyze_listing_photos(
-            [make_photo(1), make_photo(2)],
-            client=FakeClient(json.dumps(output)),
-        )
+    analysis, _ = analyze_listing_photos(
+        [make_photo(1), make_photo(2)],
+        client=FakeClient(json.dumps(output)),
+    )
+
+    assert analysis.recommended_cover_photo_number is None

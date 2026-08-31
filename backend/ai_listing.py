@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +19,8 @@ from ai_descriptions import (
 
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
+
+logger = logging.getLogger(__name__)
 
 MAX_LISTING_PHOTOS = 5
 MAX_PHOTO_BYTES = 10 * 1024 * 1024
@@ -215,9 +218,7 @@ class ListingPhotoAnalysis(BaseModel):
                 for issue in selected.issues
             )
         ):
-            raise ValueError(
-                "An unsafe, poor, or unclear photo cannot be the cover."
-            )
+            self.recommended_cover_photo_number = None
 
         return self
 
@@ -695,6 +696,7 @@ def analyze_listing_photos(
     except AIGenerationError:
         raise
     except Exception as exc:
+        logger.exception("Gemini listing photo review failed")
         raise AIGenerationError(
             "Gemini could not review the listing photos. "
             "Try again in a moment."
@@ -773,6 +775,7 @@ def analyze_listing_draft(
     except AIGenerationError:
         raise
     except Exception as exc:
+        logger.exception("Gemini full listing review failed")
         raise AIGenerationError(
             "Gemini could not review the listing. "
             "Try again in a moment."
