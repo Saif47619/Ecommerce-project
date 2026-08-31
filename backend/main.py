@@ -43,8 +43,10 @@ from ai_condition import (
 from ai_listing import (
     MAX_LISTING_PHOTOS,
     MAX_PHOTO_BYTES as MAX_LISTING_PHOTO_BYTES,
+    ListingDraftDetails,
     ListingPhoto,
     ListingPhotoDataError,
+    analyze_listing_draft,
     analyze_listing_photos,
 )
 
@@ -218,10 +220,9 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/ai/analyze-listing-photos")
-async def analyze_ai_listing_photos(
-    files: list[UploadFile] = File(...),
-):
+async def read_listing_uploads(
+    files: list[UploadFile],
+) -> list[ListingPhoto]:
     if len(files) > MAX_LISTING_PHOTOS:
         raise HTTPException(
             status_code=400,
@@ -267,10 +268,58 @@ async def analyze_ai_listing_photos(
             )
         )
 
+    return photos
+
+
+@app.post("/ai/analyze-listing-photos")
+async def analyze_ai_listing_photos(
+    files: list[UploadFile] = File(...),
+):
+    photos = await read_listing_uploads(files)
+
     try:
         analysis, model = await run_in_threadpool(
             analyze_listing_photos,
             photos,
+        )
+    except ListingPhotoDataError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AIConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "analysis": analysis.model_dump(),
+        "model": model,
+    }
+
+
+@app.post("/ai/review-listing")
+async def review_ai_listing(
+    files: list[UploadFile] = File(...),
+    title: str = Form(""),
+    category: str = Form(""),
+    brand: str = Form(""),
+    color: str = Form(""),
+    condition: str = Form(""),
+    size: str = Form(""),
+):
+    photos = await read_listing_uploads(files)
+    details = ListingDraftDetails(
+        title=title,
+        category=category,
+        brand=brand,
+        color=color,
+        condition=condition,
+        size=size,
+    )
+
+    try:
+        analysis, model = await run_in_threadpool(
+            analyze_listing_draft,
+            photos,
+            details,
         )
     except ListingPhotoDataError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
