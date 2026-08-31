@@ -16,6 +16,7 @@ import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 import { generateSavedItemAiDescription } from "../../lib/ai-description";
 import ScreenBackButton from "../../components/screen-back-button";
 import ListingPhotoReviewCard from "../../components/listing-photo-review-card";
+import PriceGuidanceCard from "../../components/price-guidance-card";
 import {
   applyRecommendedCover,
   reviewSavedListingDraft,
@@ -797,6 +798,21 @@ export default function EditItemScreen() {
           />
         </View>
       </View>
+
+      <PriceGuidanceCard
+        title={title}
+        category={category}
+        brand={brand}
+        condition={condition}
+        price={price}
+        excludeItemId={
+          Number(Array.isArray(id) ? id[0] : id) || undefined
+        }
+        onUsePrice={(suggestedPrice) => setPrice(String(suggestedPrice))}
+        style={{
+          marginBottom: spacing.lg,
+        }}
+      />
 
       <Text
         style={{

@@ -22,6 +22,7 @@ import {
 } from "../lib/ai-listing";
 import ScreenBackButton from "../components/screen-back-button";
 import ListingPhotoReviewCard from "../components/listing-photo-review-card";
+import PriceGuidanceCard from "../components/price-guidance-card";
 import {
   EMPTY_GARMENT_MEASUREMENTS,
   GarmentMeasurementsFields,
@@ -560,6 +561,19 @@ export default function CreateItemScreen() {
           />
         </FieldRow>
       </View>
+
+      <PriceGuidanceCard
+        title={title}
+        category={category}
+        brand={brand}
+        condition={condition}
+        price={price}
+        onUsePrice={(suggestedPrice) => setPrice(String(suggestedPrice))}
+        style={{
+          marginHorizontal: spacing.lg,
+          marginBottom: spacing.xl,
+        }}
+      />
 
       <SectionLabel text="Reloop AI review" />
       <View

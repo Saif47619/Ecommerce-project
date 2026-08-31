@@ -36,7 +36,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:ai-search": "tsx --test tests/ai-search-ranking.test.mjs",
-    "test:ai-listing": "tsx --test tests/ai-listing.test.mjs"
+    "test:ai-listing": "tsx --test tests/ai-listing.test.mjs",
+    "test:ai-pricing": "tsx --test tests/price-guidance.test.mjs"
   },
   "private": true
 }
