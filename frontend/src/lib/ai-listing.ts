@@ -191,6 +191,51 @@ export async function reviewListingDraft(
   return data.analysis;
 }
 
+export async function reviewSavedListingDraft(
+  itemId: number,
+  details: ListingDraftDetails,
+): Promise<ListingDraftAnalysis> {
+  if (!Number.isInteger(itemId) || itemId <= 0) {
+    throw new Error("This listing could not be identified");
+  }
+
+  if (details.title.trim().length < 2) {
+    throw new Error("Add a clear item title before reviewing the listing");
+  }
+
+  const formData = new FormData();
+
+  for (const [field, value] of Object.entries(details)) {
+    formData.append(field, value.trim());
+  }
+
+  const response = await fetch(
+    `${API_URL}/ai/items/${itemId}/review-listing`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+  const data: ListingDraftAnalysisResponse = await response
+    .json()
+    .catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Could not review the listing");
+  }
+
+  if (
+    !data.analysis ||
+    !Array.isArray(data.analysis.photos) ||
+    !Array.isArray(data.analysis.detail_checks) ||
+    !data.analysis.review_status
+  ) {
+    throw new Error("Reloop AI returned an incomplete listing review");
+  }
+
+  return data.analysis;
+}
+
 export function applyRecommendedCover<T extends ListingPhotoAnalysis>(
   imageUris: string[],
   analysis: T,

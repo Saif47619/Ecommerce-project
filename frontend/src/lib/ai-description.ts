@@ -48,3 +48,37 @@ export async function generateAiDescription(
 
   return data.description;
 }
+
+export async function generateSavedItemAiDescription(
+  itemId: number,
+  details: ListingDescriptionDetails,
+): Promise<string> {
+  if (!Number.isInteger(itemId) || itemId <= 0) {
+    throw new Error("This listing could not be identified");
+  }
+
+  const formData = new FormData();
+
+  Object.entries(details).forEach(([key, value]) => {
+    formData.append(key, value);
+  });
+
+  const response = await fetch(
+    `${API_URL}/ai/items/${itemId}/generate-description`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Could not generate a description");
+  }
+
+  if (!data.description) {
+    throw new Error("Gemini returned an empty description");
+  }
+
+  return data.description;
+}

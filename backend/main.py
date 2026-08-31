@@ -271,6 +271,77 @@ async def read_listing_uploads(
     return photos
 
 
+def load_saved_listing_photos(
+    item: Item,
+    db: Session,
+) -> list[ListingPhoto]:
+    image_records = (
+        db.query(ItemImage)
+        .filter(ItemImage.item_id == item.id)
+        .order_by(ItemImage.position)
+        .limit(MAX_LISTING_PHOTOS)
+        .all()
+    )
+    image_urls = [image.image_url for image in image_records]
+
+    if not image_urls and item.image_url:
+        image_urls = [item.image_url]
+
+    if not image_urls:
+        raise HTTPException(
+            status_code=400,
+            detail="Add at least one item photo before using AI.",
+        )
+
+    photos: list[ListingPhoto] = []
+
+    for number, image_url in enumerate(image_urls, start=1):
+        file_name = Path(image_url).name
+        file_path = UPLOADS_DIRECTORY / file_name
+        mime_type = mimetypes.guess_type(file_name)[0] or ""
+
+        if not mime_type.startswith("image/"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Photo {number} must be a valid image.",
+            )
+
+        try:
+            image_bytes = file_path.read_bytes()
+        except OSError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Photo {number} could not be read. "
+                    "Remove or replace the missing photo."
+                ),
+            ) from exc
+
+        if not image_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Photo {number} is empty.",
+            )
+
+        if len(image_bytes) > MAX_LISTING_PHOTO_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"Photo {number} must be 10 MB or smaller."
+                ),
+            )
+
+        photos.append(
+            ListingPhoto(
+                number=number,
+                image_bytes=image_bytes,
+                mime_type=mime_type,
+            )
+        )
+
+    return photos
+
+
 @app.post("/ai/analyze-listing-photos")
 async def analyze_ai_listing_photos(
     files: list[UploadFile] = File(...),
@@ -363,6 +434,94 @@ async def generate_ai_description(
             generate_listing_description,
             image_bytes,
             image.content_type,
+            ListingDetails(
+                title=title,
+                category=category,
+                brand=brand,
+                condition=condition,
+                color=color,
+                size=size,
+            ),
+        )
+    except AIConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "description": description,
+        "model": model,
+    }
+
+
+@app.post("/ai/items/{item_id}/review-listing")
+async def review_saved_ai_listing(
+    item_id: int,
+    title: str = Form(""),
+    category: str = Form(""),
+    brand: str = Form(""),
+    color: str = Form(""),
+    condition: str = Form(""),
+    size: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    item = db.query(Item).filter(Item.id == item_id).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    photos = load_saved_listing_photos(item, db)
+    details = ListingDraftDetails(
+        title=title,
+        category=category,
+        brand=brand,
+        color=color,
+        condition=condition,
+        size=size,
+    )
+
+    try:
+        analysis, model = await run_in_threadpool(
+            analyze_listing_draft,
+            photos,
+            details,
+        )
+    except ListingPhotoDataError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AIConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AIGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {
+        "analysis": analysis.model_dump(),
+        "model": model,
+    }
+
+
+@app.post("/ai/items/{item_id}/generate-description")
+async def generate_saved_ai_description(
+    item_id: int,
+    title: str = Form(""),
+    category: str = Form(""),
+    brand: str = Form(""),
+    condition: str = Form(""),
+    color: str = Form(""),
+    size: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    item = db.query(Item).filter(Item.id == item_id).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    cover_photo = load_saved_listing_photos(item, db)[0]
+
+    try:
+        description, model = await run_in_threadpool(
+            generate_listing_description,
+            cover_photo.image_bytes,
+            cover_photo.mime_type,
             ListingDetails(
                 title=title,
                 category=category,
