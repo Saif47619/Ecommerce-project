@@ -595,6 +595,7 @@ def get_ai_price_guidance(
             title=item.title or "",
             price=float(item.price),
             category=item.category or "",
+            product_type=item.product_type or "",
             brand=item.brand or "",
             condition=item.condition or "",
             is_sold=bool(item.is_sold),
@@ -611,6 +612,7 @@ def get_ai_price_guidance(
             title=reference.title,
             price=float(reference.price_pkr),
             category=reference.category or "",
+            product_type=reference.product_type or "",
             brand=reference.brand or "",
             condition=reference.condition or "",
             is_sold=reference.reference_type == "sold",
@@ -621,6 +623,7 @@ def get_ai_price_guidance(
         PricingTarget(
             title=request.title,
             category=request.category,
+            product_type=request.product_type,
             brand=request.brand,
             condition=request.condition,
             seller_price=request.seller_price,
@@ -1006,6 +1009,7 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
         price=item.price,
         size=item.size,
         category=item.category,
+        product_type=item.product_type,
         brand=item.brand,
         condition=item.condition,
         color=item.color,
@@ -1029,6 +1033,7 @@ def get_items(
     search: Optional[str] = None,
     size: Optional[str] = None,
     category: Optional[str] = None,
+    product_type: Optional[str] = None,
     brand: Optional[str] = None,
     condition: Optional[str] = None,
     color: Optional[str] = None,
@@ -1044,6 +1049,8 @@ def get_items(
         query = query.filter(Item.size.ilike(size))
     if category:
         query = query.filter(Item.category == category)
+    if product_type:
+        query = query.filter(Item.product_type == product_type)
     if brand:
         query = query.filter(Item.brand.ilike(f"%{brand}%"))
     if condition:
@@ -1068,6 +1075,7 @@ def get_items(
             "price": item.price,
             "size": item.size,
             "category": item.category,
+            "product_type": item.product_type,
             "brand": item.brand,
             "condition": item.condition,
             "color": item.color,
@@ -1122,6 +1130,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
         "price": item.price,
         "size": item.size,
         "category": item.category,
+        "product_type": item.product_type,
         "brand": item.brand,
         "condition": item.condition,
         "color": item.color,
@@ -1193,6 +1202,7 @@ def update_item(
     existing_item.price = item.price
     existing_item.size = item.size
     existing_item.category = item.category
+    existing_item.product_type = item.product_type
     existing_item.brand = item.brand
     existing_item.condition = item.condition
     existing_item.color = item.color

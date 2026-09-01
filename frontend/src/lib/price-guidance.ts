@@ -23,6 +23,7 @@ export type PriceGuidance = {
   status: PricingStatus;
   currency: "PKR";
   confidence: PricingConfidence;
+  product_type: string | null;
   suggested_min: number | null;
   suggested_midpoint: number | null;
   suggested_max: number | null;
@@ -41,6 +42,7 @@ export type PriceGuidance = {
 export type PriceGuidanceDetails = {
   title: string;
   category?: string;
+  productType?: string;
   brand?: string;
   condition?: string;
   sellerPrice?: string | number | null;
@@ -86,6 +88,7 @@ export function buildPriceGuidanceRequest(
   const body: {
     title: string;
     category: string;
+    product_type: string;
     brand: string;
     condition: string;
     seller_price?: number;
@@ -93,6 +96,7 @@ export function buildPriceGuidanceRequest(
   } = {
     title,
     category: details.category?.trim() || "",
+    product_type: details.productType?.trim() || "",
     brand: details.brand?.trim() || "",
     condition: details.condition?.trim() || "",
   };

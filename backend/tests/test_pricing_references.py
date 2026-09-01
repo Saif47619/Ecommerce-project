@@ -11,7 +11,7 @@ from pricing_references import (
 
 
 CSV_HEADER = (
-    "source_name,source_listing_id,source_url,title,category,brand,"
+    "source_name,source_listing_id,source_url,title,category,product_type,brand,"
     "condition,price_pkr,reference_type,observed_at\n"
 )
 
@@ -28,7 +28,7 @@ def test_loads_a_human_reviewed_reference_csv(tmp_path):
         CSV_HEADER
         + (
             "Market A,item-1,https://example.com/item-1,Blue denim jacket,"
-            "Outerwear,Unbranded,Good,3500,asking,2026-08-15T12:30:00\n"
+            "Outerwear,jacket,Unbranded,Good,3500,asking,2026-08-15T12:30:00\n"
         ),
     )
 
@@ -37,6 +37,7 @@ def test_loads_a_human_reviewed_reference_csv(tmp_path):
     assert len(rows) == 1
     assert rows[0].source_name == "Market A"
     assert rows[0].price_pkr == 3500
+    assert rows[0].product_type == "jacket"
     assert rows[0].reference_type == "asking"
     assert rows[0].observed_at == datetime(2026, 8, 15, 12, 30)
 
@@ -52,15 +53,15 @@ def test_rejects_missing_required_columns(tmp_path):
     "row",
     [
         (
-            "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,,,"
+            "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,jacket,,,"
             "99,asking,2026-08-15T12:30:00\n"
         ),
         (
-            "Market A,item-1,ftp://example.com/item-1,Jacket,Outerwear,,,"
+            "Market A,item-1,ftp://example.com/item-1,Jacket,Outerwear,jacket,,,"
             "3500,asking,2026-08-15T12:30:00\n"
         ),
         (
-            "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,,,"
+            "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,jacket,,,"
             "3500,estimated,2026-08-15T12:30:00\n"
         ),
     ],
@@ -81,7 +82,7 @@ def test_rejects_an_empty_reference_file(tmp_path):
 
 def test_rejects_duplicate_source_listing_ids(tmp_path):
     row = (
-        "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,,,"
+        "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,jacket,,,"
         "3500,asking,2026-08-15T12:30:00\n"
     )
     path = write_csv(tmp_path, CSV_HEADER + row + row)
@@ -95,7 +96,7 @@ def test_normalizes_timezone_aware_observation_to_utc(tmp_path):
         tmp_path,
         CSV_HEADER
         + (
-            "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,,,"
+            "Market A,item-1,https://example.com/item-1,Jacket,Outerwear,jacket,,,"
             "3500,asking,2026-08-15T17:30:00+05:00\n"
         ),
     )

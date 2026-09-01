@@ -23,6 +23,7 @@ import {
 import ScreenBackButton from "../components/screen-back-button";
 import ListingPhotoReviewCard from "../components/listing-photo-review-card";
 import PriceGuidanceCard from "../components/price-guidance-card";
+import ProductTypeSelector from "../components/product-type-selector";
 import {
   EMPTY_GARMENT_MEASUREMENTS,
   GarmentMeasurementsFields,
@@ -39,6 +40,7 @@ export default function CreateItemScreen() {
   const [size, setSize] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
+  const [productType, setProductType] = useState("");
   const [condition, setCondition] = useState("");
   const [color, setColor] = useState("");
   const [measurements, setMeasurements] = useState({
@@ -188,6 +190,11 @@ export default function CreateItemScreen() {
       return;
     }
 
+    if (!productType) {
+      Alert.alert("Item type required", "Choose the exact type of item");
+      return;
+    }
+
     let parsedMeasurements: ReturnType<
       typeof parseGarmentMeasurements
     >;
@@ -228,6 +235,7 @@ export default function CreateItemScreen() {
           size,
           brand,
           category,
+          product_type: productType,
           condition,
           color,
           ...parsedMeasurements,
@@ -516,6 +524,18 @@ export default function CreateItemScreen() {
           </View>
         </View>
 
+        <ProductTypeSelector
+          value={productType}
+          onChange={(value) => {
+            setProductType(value);
+            setListingAnalysis(null);
+          }}
+          style={{
+            paddingVertical: spacing.sm,
+            paddingHorizontal: spacing.lg,
+          }}
+        />
+
         <View style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}>
           <Text style={{ ...type.body, color: colors.ink, marginBottom: spacing.sm }}>Condition</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
@@ -565,6 +585,7 @@ export default function CreateItemScreen() {
       <PriceGuidanceCard
         title={title}
         category={category}
+        productType={productType}
         brand={brand}
         condition={condition}
         price={price}

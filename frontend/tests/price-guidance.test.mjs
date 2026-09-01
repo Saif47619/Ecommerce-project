@@ -14,6 +14,7 @@ test("normalizes a price guidance request", () => {
     buildPriceGuidanceRequest({
       title: "  Blue denim jacket  ",
       category: " Outerwear ",
+      productType: " jacket ",
       brand: " Unbranded ",
       condition: " Good ",
       sellerPrice: "3500",
@@ -22,6 +23,7 @@ test("normalizes a price guidance request", () => {
     {
       title: "Blue denim jacket",
       category: "Outerwear",
+      product_type: "jacket",
       brand: "Unbranded",
       condition: "Good",
       seller_price: 3500,
@@ -62,6 +64,7 @@ test("posts the normalized request and returns guidance", async () => {
         status: "insufficient_data",
         currency: "PKR",
         confidence: "low",
+        product_type: "jacket",
         suggested_min: null,
         suggested_midpoint: null,
         suggested_max: null,
@@ -82,11 +85,13 @@ test("posts the normalized request and returns guidance", async () => {
   try {
     const response = await requestPriceGuidance({
       title: "Denim jacket",
+      productType: "jacket",
       sellerPrice: 3500,
     });
 
     assert.equal(response.status, "insufficient_data");
     assert.equal(receivedBody.title, "Denim jacket");
+    assert.equal(receivedBody.product_type, "jacket");
     assert.equal(receivedBody.seller_price, 3500);
   } finally {
     globalThis.fetch = originalFetch;

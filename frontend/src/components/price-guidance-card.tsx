@@ -15,11 +15,13 @@ import {
   type PriceGuidance,
   type PricePosition,
 } from "../lib/price-guidance";
+import { getProductTypeLabel } from "../lib/product-types";
 
 
 type PriceGuidanceCardProps = {
   title: string;
   category: string;
+  productType: string;
   brand: string;
   condition: string;
   price: string;
@@ -43,6 +45,7 @@ const CONFIDENCE_COLORS = {
 export default function PriceGuidanceCard({
   title,
   category,
+  productType,
   brand,
   condition,
   price,
@@ -57,7 +60,7 @@ export default function PriceGuidanceCard({
   useEffect(() => {
     setGuidance(null);
     setError("");
-  }, [title, category, brand, condition, excludeItemId]);
+  }, [title, category, productType, brand, condition, excludeItemId]);
 
   const handleCheck = async () => {
     setChecking(true);
@@ -67,6 +70,7 @@ export default function PriceGuidanceCard({
       const result = await requestPriceGuidance({
         title,
         category,
+        productType,
         brand,
         condition,
         sellerPrice: price,
@@ -130,7 +134,8 @@ export default function PriceGuidanceCard({
 
       {!guidance && !error && (
         <Text style={{ ...type.body, color: colors.inkMuted, fontSize: 12, marginTop: spacing.md }}>
-          Add a clear title first. Category, brand, condition, and your entered price improve the comparison.
+          Add a clear title and choose the exact item type first. Brand,
+          condition, and your entered price improve the comparison.
         </Text>
       )}
 
@@ -167,6 +172,10 @@ export default function PriceGuidanceCard({
 
       {isReady && guidance && (
         <View style={{ marginTop: spacing.md }}>
+          <Text style={{ ...type.label, color: colors.wine, marginBottom: spacing.xs }}>
+            Comparing as {getProductTypeLabel(guidance.product_type || productType)}
+          </Text>
+
           <View
             style={{
               flexDirection: "row",
@@ -256,7 +265,7 @@ export default function PriceGuidanceCard({
 
       <TouchableOpacity
         onPress={handleCheck}
-        disabled={checking || title.trim().length < 2}
+        disabled={checking || title.trim().length < 2 || !productType}
         style={{
           alignSelf: "flex-start",
           flexDirection: "row",
@@ -267,7 +276,7 @@ export default function PriceGuidanceCard({
           paddingVertical: 10,
           paddingHorizontal: 14,
           marginTop: spacing.md,
-          opacity: checking || title.trim().length < 2 ? 0.55 : 1,
+          opacity: checking || title.trim().length < 2 || !productType ? 0.55 : 1,
         }}
       >
         {checking && <ActivityIndicator size="small" color={colors.white} />}

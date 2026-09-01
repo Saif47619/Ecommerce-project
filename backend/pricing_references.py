@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy.orm import Session
 
 from models import PricingReference
+from product_types import normalize_product_type
 
 
 MAX_REFERENCE_AGE_DAYS = 90
@@ -17,6 +18,7 @@ REQUIRED_COLUMNS = {
     "source_url",
     "title",
     "category",
+    "product_type",
     "brand",
     "condition",
     "price_pkr",
@@ -31,6 +33,7 @@ class PricingReferenceInput(BaseModel):
     source_url: str = Field(default="", max_length=2000)
     title: str = Field(min_length=2, max_length=200)
     category: str = Field(default="", max_length=80)
+    product_type: str = Field(min_length=2, max_length=50)
     brand: str = Field(default="", max_length=100)
     condition: str = Field(default="", max_length=40)
     price_pkr: float = Field(ge=100, le=100_000_000)
@@ -50,6 +53,7 @@ class PricingReferenceInput(BaseModel):
     @field_validator(
         "source_url",
         "category",
+        "product_type",
         "brand",
         "condition",
         mode="before",
@@ -57,6 +61,11 @@ class PricingReferenceInput(BaseModel):
     @classmethod
     def strip_optional_text(cls, value):
         return str(value or "").strip()
+
+    @field_validator("product_type")
+    @classmethod
+    def validate_product_type(cls, value: str) -> str:
+        return normalize_product_type(value)
 
     @field_validator("source_url")
     @classmethod
@@ -189,6 +198,7 @@ def upsert_pricing_references(
         reference.source_url = row.source_url or None
         reference.title = row.title
         reference.category = row.category or None
+        reference.product_type = row.product_type
         reference.brand = row.brand or None
         reference.condition = row.condition or None
         reference.price_pkr = row.price_pkr

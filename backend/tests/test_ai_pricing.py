@@ -15,6 +15,7 @@ def listing(
     price: float,
     *,
     category: str = "Outerwear",
+    product_type: str = "",
     brand: str = "",
     condition: str = "Good",
     is_sold: bool = False,
@@ -24,6 +25,7 @@ def listing(
         title=title,
         price=price,
         category=category,
+        product_type=product_type,
         brand=brand,
         condition=condition,
         is_sold=is_sold,
@@ -38,6 +40,7 @@ def market_reference(
     source_name: str,
     source_url: str,
     category: str = "Outerwear",
+    product_type: str = "",
     condition: str = "Good",
     reference_type: str = "asking",
 ) -> ComparableListing:
@@ -49,6 +52,7 @@ def market_reference(
         title=title,
         price=price,
         category=category,
+        product_type=product_type,
         condition=condition,
         is_sold=reference_type == "sold",
     )
@@ -283,6 +287,7 @@ def test_price_guidance_request_accepts_listing_context():
     request = PriceGuidanceRequest(
         title="Blue denim jacket",
         category="Outerwear",
+        product_type="jacket",
         brand="Unbranded",
         condition="Good",
         seller_price=3500,
@@ -291,6 +296,37 @@ def test_price_guidance_request_accepts_listing_context():
 
     assert request.seller_price == 3500
     assert request.exclude_item_id == 12
+    assert request.product_type == "jacket"
+
+
+def test_explicit_product_type_prevents_cross_type_matches():
+    guidance = estimate_price_guidance(
+        PricingTarget(
+            title="Blue item",
+            category="Men",
+            product_type="jacket",
+        ),
+        [
+            listing(1, "Blue item", 3000, product_type="jacket"),
+            listing(2, "Blue item", 3500, product_type="jacket"),
+            listing(3, "Blue item", 4000, product_type="jacket"),
+            listing(4, "Blue item", 4500, product_type="shirt"),
+            listing(5, "Blue item", 5000, product_type="sneakers"),
+        ],
+    )
+
+    assert guidance.status == "ready"
+    assert guidance.product_type == "jacket"
+    assert set(guidance.comparable_item_ids) == {1, 2, 3}
+
+
+def test_product_type_alias_is_normalized():
+    request = PriceGuidanceRequest(
+        title="Plain tee",
+        product_type="T-shirt",
+    )
+
+    assert request.product_type == "t_shirt"
 
 
 @pytest.mark.parametrize(

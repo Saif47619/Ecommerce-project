@@ -6,6 +6,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from product_types import infer_product_type, normalize_product_type
+
 
 PricingStatus = Literal[
     "ready",
@@ -106,6 +108,7 @@ CONDITION_MULTIPLIERS = {
 class PricingTarget:
     title: str
     category: str = ""
+    product_type: str = ""
     brand: str = ""
     condition: str = ""
     seller_price: Optional[float] = None
@@ -118,6 +121,7 @@ class ComparableListing:
     title: str
     price: float
     category: str = ""
+    product_type: str = ""
     brand: str = ""
     condition: str = ""
     is_sold: bool = False
@@ -141,6 +145,7 @@ class PriceGuidance(BaseModel):
     status: PricingStatus
     currency: Literal["PKR"] = "PKR"
     confidence: PricingConfidence
+    product_type: Optional[str] = None
     suggested_min: Optional[float] = None
     suggested_midpoint: Optional[float] = None
     suggested_max: Optional[float] = None
@@ -266,6 +271,25 @@ def _score_comparable(
     ):
         return None
 
+    target_explicit_type = normalize_product_type(
+        target.product_type,
+        strict=False,
+    )
+    listing_explicit_type = normalize_product_type(
+        listing.product_type,
+        strict=False,
+    )
+    target_inferred_type = infer_product_type(target.title)
+    listing_inferred_type = infer_product_type(listing.title)
+    target_product_type = target_explicit_type or target_inferred_type
+    listing_product_type = listing_explicit_type or listing_inferred_type
+
+    if target_explicit_type and listing_product_type != target_explicit_type:
+        return None
+
+    if listing_explicit_type and target_product_type != listing_explicit_type:
+        return None
+
     target_title_family = _detect_product_family(target.title)
     target_category_family = _detect_product_family(target.category)
     target_family = target_title_family or target_category_family
@@ -296,6 +320,13 @@ def _score_comparable(
         return None
 
     score = 0.0
+
+    if target_explicit_type and listing_explicit_type == target_explicit_type:
+        score += 6.0
+    elif target_explicit_type and listing_inferred_type == target_explicit_type:
+        score += 4.0
+    elif target_product_type and listing_product_type == target_product_type:
+        score += 2.0
 
     if target_family and listing_title_family == target_family:
         score += 5.0
@@ -398,6 +429,10 @@ def estimate_price_guidance(
     target: PricingTarget,
     listings: list[ComparableListing],
 ) -> PriceGuidance:
+    resolved_product_type = (
+        normalize_product_type(target.product_type, strict=False)
+        or infer_product_type(target.title)
+    )
     scored = [
         comparable
         for listing in listings
@@ -456,6 +491,7 @@ def estimate_price_guidance(
         return PriceGuidance(
             status="insufficient_data",
             confidence="low",
+            product_type=resolved_product_type,
             sample_count=sample_count,
             sold_sample_count=sold_sample_count,
             comparable_item_ids=comparable_ids,
@@ -504,6 +540,7 @@ def estimate_price_guidance(
     return PriceGuidance(
         status="ready",
         confidence=confidence,
+        product_type=resolved_product_type,
         suggested_min=suggested_min,
         suggested_midpoint=suggested_midpoint,
         suggested_max=suggested_max,
