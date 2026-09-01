@@ -2,6 +2,7 @@ import mimetypes
 import os
 import shutil
 import uuid
+from datetime import datetime
 from pathlib import Path
 from starlette.concurrency import run_in_threadpool
 from typing import Optional
@@ -66,6 +67,13 @@ from ai_pricing import (
     estimate_price_guidance,
 )
 from pricing_references import reference_cutoff
+from product_grades import (
+    GRADE_DEFINITIONS,
+    GRADE_DISCLAIMER,
+    GRADE_VERSION,
+    derive_reloop_grade,
+    grade_label,
+)
 
 from auth import hash_password, verify_password
 from schemas import (
@@ -202,10 +210,52 @@ def serialize_condition_passport(
     }
 
 
+def serialize_reloop_grade(item: Item) -> dict:
+    grade = item.reloop_grade or "U"
+
+    return {
+        "reloop_grade": grade,
+        "grade_label": grade_label(grade),
+        "grade_status": item.grade_status or "unverified",
+        "grade_confidence": item.grade_confidence,
+        "grade_summary": item.grade_summary,
+        "graded_at": item.graded_at,
+    }
+
+
+def sync_reloop_grade(
+    item: Item,
+    passport: ConditionPassport,
+) -> None:
+    decision = derive_reloop_grade(
+        visual_grade=passport.visual_grade,
+        photo_coverage=passport.photo_coverage,
+        confidence=passport.confidence,
+        seller_condition_consistency=(
+            passport.seller_condition_consistency
+        ),
+    )
+
+    item.reloop_grade = decision.grade
+    item.grade_status = decision.status
+    item.grade_confidence = passport.confidence
+    item.grade_summary = passport.summary
+    item.graded_at = datetime.utcnow()
+
+
 def mark_condition_passport_stale(
     item_id: int,
     db: Session,
 ) -> None:
+    item = db.query(Item).filter(Item.id == item_id).first()
+
+    if item:
+        item.reloop_grade = "U"
+        item.grade_status = "stale"
+        item.grade_confidence = None
+        item.grade_summary = None
+        item.graded_at = None
+
     passport = (
         db.query(ConditionPassport)
         .filter(
@@ -226,6 +276,15 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/grades")
+def get_grade_guide():
+    return {
+        "version": GRADE_VERSION,
+        "grades": list(GRADE_DEFINITIONS),
+        "disclaimer": GRADE_DISCLAIMER,
+    }
 
 
 async def read_listing_uploads(
@@ -734,6 +793,7 @@ def get_condition_passport(
     if not passport:
         return {
             "status": "not_generated",
+            "grade": serialize_reloop_grade(item),
             "passport": None,
         }
 
@@ -747,6 +807,7 @@ def get_condition_passport(
             if is_stale
             else "ready"
         ),
+        "grade": serialize_reloop_grade(item),
         "passport": serialize_condition_passport(
             passport
         ),
@@ -818,9 +879,13 @@ async def generate_condition_passport(
         and passport.source_fingerprint
         == current_fingerprint
     ):
+        sync_reloop_grade(item, passport)
+        db.commit()
+        db.refresh(item)
         return {
             "status": "ready",
             "cached": True,
+            "grade": serialize_reloop_grade(item),
             "passport": (
                 serialize_condition_passport(
                     passport
@@ -913,16 +978,19 @@ async def generate_condition_passport(
         )
         passport.model = model
 
+    sync_reloop_grade(item, passport)
     db.commit()
     db.refresh(passport)
+    db.refresh(item)
 
     return {
         "status": "ready",
         "cached": False,
+        "grade": serialize_reloop_grade(item),
         "passport": serialize_condition_passport(
             passport
         ),
-        }
+    }
 
 @app.post("/signup")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
@@ -1090,6 +1158,7 @@ def get_items(
             "buyer_id": item.buyer_id,
             "store_id": item.store_id,
             "photo_count": photo_count,
+            **serialize_reloop_grade(item),
         })
 
     return result
@@ -1145,6 +1214,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
         "is_sold": item.is_sold,
         "buyer_id": item.buyer_id,
         "store_id": item.store_id,
+        **serialize_reloop_grade(item),
         "store": {
             "id": store.id,
             "name": store.name,
