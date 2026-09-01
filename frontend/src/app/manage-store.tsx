@@ -5,6 +5,7 @@ import { useAuth } from "../context/auth-context";
 import { API_URL } from "../lib/api";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
 import { formatPKR } from "../lib/currency";
+import GradeBadge from "../components/grade-badge";
 
 export default function ManageStoreScreen() {
   const { user } = useAuth();
@@ -133,7 +134,7 @@ export default function ManageStoreScreen() {
             ...cardShadow,
           }}
         >
-          <View style={{ width: 64, height: 64, borderRadius: radius.sm, backgroundColor: colors.border, overflow: "hidden", marginRight: spacing.sm }}>
+          <View style={{ width: 64, height: 64, borderRadius: radius.sm, backgroundColor: colors.border, overflow: "hidden", marginRight: spacing.sm, position: "relative" }}>
             {item.image_url ? (
               <Image source={{ uri: `${API_URL}${item.image_url}` }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
             ) : (
@@ -141,6 +142,15 @@ export default function ManageStoreScreen() {
                 <Text style={{ fontSize: 9, color: colors.inkMuted }}>No photo</Text>
               </View>
             )}
+            <View style={{ position: "absolute", top: 3, right: 3 }}>
+              <GradeBadge
+                compact
+                inverted
+                reloop_grade={item.reloop_grade}
+                grade_status={item.grade_status}
+                grade_label={item.grade_label}
+              />
+            </View>
           </View>
 
           <View style={{ flex: 1 }}>

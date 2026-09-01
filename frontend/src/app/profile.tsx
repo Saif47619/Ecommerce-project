@@ -5,6 +5,7 @@ import { useAuth } from "../context/auth-context";
 import { API_URL } from "../lib/api";
 import { colors, spacing, radius, type, cardShadow } from "../constants/reloop-theme";
 import { formatPKR } from "../lib/currency";
+import GradeBadge from "../components/grade-badge";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -161,7 +162,10 @@ export default function ProfileScreen() {
                 <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>{formatPKR(item.price)}</Text>
               </View>
 
-              <View
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+                <GradeBadge compact reloop_grade={item.reloop_grade} grade_status={item.grade_status} grade_label={item.grade_label} />
+
+                <View
                 style={{
                   paddingVertical: 4,
                   paddingHorizontal: 10,
@@ -172,6 +176,7 @@ export default function ProfileScreen() {
                 <Text style={{ fontSize: 11, fontWeight: "700", color: item.is_sold ? colors.white : colors.inkMuted }}>
                   {item.is_sold ? "Sold" : "Active"}
                 </Text>
+              </View>
               </View>
             </View>
           ))}
@@ -204,7 +209,10 @@ export default function ProfileScreen() {
             }}
           >
             <Text style={{ fontSize: 14, fontWeight: "700", color: colors.ink }}>{item.title}</Text>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>{formatPKR(item.price)}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+              <GradeBadge compact reloop_grade={item.reloop_grade} grade_status={item.grade_status} grade_label={item.grade_label} />
+              <Text style={{ fontSize: 15, fontWeight: "800", color: colors.brass }}>{formatPKR(item.price)}</Text>
+            </View>
           </View>
         ))
       )}

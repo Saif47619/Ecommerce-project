@@ -26,6 +26,7 @@ import {
   spacing,
   type,
 } from "../constants/reloop-theme";
+import GradeBadge from "./grade-badge";
 
 type ConditionPassportCardProps = {
   itemId: number;
@@ -157,25 +158,18 @@ export default function ConditionPassportCard({
           gap: spacing.xs,
         }}
       >
-        <View
-          style={{
-            backgroundColor: colors.wine,
-            borderRadius: 999,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-          }}
-        >
-          <Text
-            style={{
-              color: colors.white,
-              fontSize: 10,
-              fontWeight: "800",
-              letterSpacing: 0.5,
-            }}
-          >
-            AI
-          </Text>
-        </View>
+        {response?.grade ? (
+          <GradeBadge
+            compact
+            reloop_grade={response.grade.reloop_grade}
+            grade_status={response.grade.grade_status}
+            grade_label={response.grade.grade_label}
+          />
+        ) : (
+          <View style={{ backgroundColor: colors.wine, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4 }}>
+            <Text style={{ color: colors.white, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 }}>AI</Text>
+          </View>
+        )}
 
         <View style={{ flex: 1 }}>
           <Text
@@ -186,7 +180,7 @@ export default function ConditionPassportCard({
               marginBottom: 3,
             }}
           >
-            Condition Passport
+            Why this grade?
           </Text>
 
           <Text
@@ -196,8 +190,8 @@ export default function ConditionPassportCard({
               lineHeight: 17,
             }}
           >
-            A photo-based condition review. This is
-            not a physical inspection.
+            See the visible evidence, photo coverage,
+            and limits behind the Reloop Grade.
           </Text>
         </View>
       </View>
@@ -281,7 +275,7 @@ export default function ConditionPassportCard({
               marginBottom: 4,
             }}
           >
-            No passport yet
+            Grade U · Unverified
           </Text>
 
           <Text
@@ -299,7 +293,7 @@ export default function ConditionPassportCard({
           {isOwner ? (
             <PassportActionButton
               generating={generating}
-              label="Generate passport"
+              label="Check product grade"
               onPress={handleGenerate}
             />
           ) : null}
@@ -326,7 +320,7 @@ export default function ConditionPassportCard({
               marginBottom: 4,
             }}
           >
-            Passport needs refreshing
+            Grade needs refreshing
           </Text>
 
           <Text
@@ -344,7 +338,7 @@ export default function ConditionPassportCard({
           {isOwner ? (
             <PassportActionButton
               generating={generating}
-              label="Regenerate passport"
+              label="Recheck product grade"
               onPress={handleGenerate}
             />
           ) : null}
@@ -364,7 +358,7 @@ export default function ConditionPassportCard({
       isOwner ? (
         <PassportActionButton
           generating={generating}
-          label="Refresh passport"
+          label="Refresh grade evidence"
           onPress={handleGenerate}
           secondary
         />

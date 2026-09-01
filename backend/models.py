@@ -70,6 +70,11 @@ class Item(Base):
     condition = Column(String, nullable=True)
     color = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    reloop_grade = Column(String(1), nullable=False, default="U", index=True)
+    grade_status = Column(String(20), nullable=False, default="unverified")
+    grade_confidence = Column(String(10), nullable=True)
+    grade_summary = Column(String(300), nullable=True)
+    graded_at = Column(DateTime, nullable=True)
     store = relationship("Store", back_populates="items")
     condition_passport = relationship(
     "ConditionPassport",
