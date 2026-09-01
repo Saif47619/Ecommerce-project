@@ -16,6 +16,8 @@ import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 import { generateSavedItemAiDescription } from "../../lib/ai-description";
 import ScreenBackButton from "../../components/screen-back-button";
 import ListingPhotoReviewCard from "../../components/listing-photo-review-card";
+import PriceGuidanceCard from "../../components/price-guidance-card";
+import ProductTypeSelector from "../../components/product-type-selector";
 import {
   applyRecommendedCover,
   reviewSavedListingDraft,
@@ -37,6 +39,7 @@ export default function EditItemScreen() {
   const [size, setSize] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
+  const [productType, setProductType] = useState("");
   const [condition, setCondition] = useState("");
   const [color, setColor] = useState("");
   const [measurements, setMeasurements] = useState({
@@ -99,6 +102,7 @@ export default function EditItemScreen() {
         setSize(item.size || "");
         setBrand(item.brand || "");
         setCategory(item.category || "");
+        setProductType(item.product_type || "");
         setCondition(item.condition || "");
         setColor(item.color || "");
         setMeasurements(
@@ -382,6 +386,11 @@ export default function EditItemScreen() {
       return;
     }
 
+    if (!productType) {
+      Alert.alert("Item type required", "Choose the exact type of item");
+      return;
+    }
+
     let parsedMeasurements: ReturnType<
       typeof parseGarmentMeasurements
     >;
@@ -412,6 +421,7 @@ export default function EditItemScreen() {
           size,
           brand,
           category,
+          product_type: productType,
           condition,
           color,
           ...parsedMeasurements,
@@ -731,6 +741,15 @@ export default function EditItemScreen() {
         ))}
       </View>
 
+      <ProductTypeSelector
+        value={productType}
+        onChange={(value) => {
+          setProductType(value);
+          setListingAnalysis(null);
+        }}
+        style={{ marginBottom: spacing.md }}
+      />
+
       <Text style={{ ...type.label, color: colors.inkMuted, marginBottom: spacing.xs }}>Condition</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginBottom: spacing.md }}>
         {CONDITIONS.map((c) => (
@@ -797,6 +816,22 @@ export default function EditItemScreen() {
           />
         </View>
       </View>
+
+      <PriceGuidanceCard
+        title={title}
+        category={category}
+        productType={productType}
+        brand={brand}
+        condition={condition}
+        price={price}
+        excludeItemId={
+          Number(Array.isArray(id) ? id[0] : id) || undefined
+        }
+        onUsePrice={(suggestedPrice) => setPrice(String(suggestedPrice))}
+        style={{
+          marginBottom: spacing.lg,
+        }}
+      />
 
       <Text
         style={{
