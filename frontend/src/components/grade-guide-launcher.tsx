@@ -7,10 +7,20 @@ import GradeGuideModal from "./grade-guide-modal";
 
 const GRADE_GUIDE_STORAGE_KEY = "reloop.grade-guide.v1.seen";
 
-export default function GradeGuideLauncher() {
+type GradeGuideLauncherProps = {
+  autoOpen?: boolean;
+};
+
+export default function GradeGuideLauncher({
+  autoOpen = true,
+}: GradeGuideLauncherProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (!autoOpen) {
+      return;
+    }
+
     let active = true;
 
     AsyncStorage.getItem(GRADE_GUIDE_STORAGE_KEY)
@@ -24,7 +34,7 @@ export default function GradeGuideLauncher() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [autoOpen]);
 
   const closeGuide = () => {
     setVisible(false);
