@@ -1,4 +1,5 @@
 import { API_URL } from "./api";
+import type { ProductGradeFields } from "./product-grades";
 
 export type ConditionPassportStatus =
   | "not_generated"
@@ -59,6 +60,7 @@ export type ConditionPassport = {
 
 export type ConditionPassportResponse = {
   status: ConditionPassportStatus;
+  grade?: ProductGradeFields;
   passport: ConditionPassport | null;
   cached?: boolean;
 };

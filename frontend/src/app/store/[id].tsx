@@ -4,6 +4,7 @@ import { useLocalSearchParams, Link } from "expo-router";
 import { API_URL } from "../../lib/api";
 import { colors, spacing, radius, type, cardShadow } from "../../constants/reloop-theme";
 import { formatPKR } from "../../lib/currency";
+import GradeBadge from "../../components/grade-badge";
 
 export default function StorePageScreen() {
   const { id } = useLocalSearchParams();
@@ -110,6 +111,21 @@ export default function StorePageScreen() {
                       <Text style={{ color: colors.inkMuted, fontSize: 12 }}>No photo</Text>
                     </View>
                   )}
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: spacing.xs,
+                      right: spacing.xs,
+                    }}
+                  >
+                    <GradeBadge
+                      compact
+                      inverted
+                      reloop_grade={item.reloop_grade}
+                      grade_status={item.grade_status}
+                      grade_label={item.grade_label}
+                    />
+                  </View>
                   {item.is_sold && (
                     <View style={{ position: "absolute", top: spacing.xs, left: spacing.xs, backgroundColor: "rgba(43,30,34,0.75)", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6 }}>
                       <Text style={{ color: colors.white, fontSize: 10, fontWeight: "700" }}>SOLD</Text>

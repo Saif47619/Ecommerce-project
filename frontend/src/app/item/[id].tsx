@@ -9,6 +9,7 @@ import FitConfidenceCard from "../../components/fit-confidence-card";
 import ConditionPassportCard from "../../components/condition-passport-card";
 import ScreenBackButton from "../../components/screen-back-button";
 import PaymentSheet from "../../components/payment-sheet";
+import GradeBadge from "../../components/grade-badge";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -209,6 +210,15 @@ export default function ItemDetailScreen() {
                             <Text style={{ color: colors.inkMuted, fontSize: 10 }}>No photo</Text>
                           </View>
                         )}
+                        <View style={{ position: "absolute", top: 5, right: 5 }}>
+                          <GradeBadge
+                            compact
+                            inverted
+                            reloop_grade={other.reloop_grade}
+                            grade_status={other.grade_status}
+                            grade_label={other.grade_label}
+                          />
+                        </View>
                       </View>
                       <Text style={{ fontSize: 12, fontWeight: "700", color: colors.wine }} numberOfLines={1}>
                         {other.brand || "Unbranded"}
@@ -240,6 +250,15 @@ export default function ItemDetailScreen() {
                             <Text style={{ color: colors.inkMuted, fontSize: 10 }}>No photo</Text>
                           </View>
                         )}
+                        <View style={{ position: "absolute", top: 5, right: 5 }}>
+                          <GradeBadge
+                            compact
+                            inverted
+                            reloop_grade={sim.reloop_grade}
+                            grade_status={sim.grade_status}
+                            grade_label={sim.grade_label}
+                          />
+                        </View>
                       </View>
                       <Text style={{ fontSize: 12, fontWeight: "700", color: colors.wine }} numberOfLines={1}>
                         {sim.brand || "Unbranded"}
@@ -258,7 +277,16 @@ export default function ItemDetailScreen() {
 
         {/* RIGHT — Info panel */}
         <View style={{ flex: 2, minWidth: 260 }}>
-          <Text style={{ ...type.h1, color: colors.ink, fontSize: 24, fontWeight: "800", marginBottom: 4 }}>{item.title}</Text>
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: spacing.sm, marginBottom: 4 }}>
+            <Text style={{ ...type.h1, color: colors.ink, fontSize: 24, fontWeight: "800", flex: 1 }}>{item.title}</Text>
+            <GradeBadge
+              reloop_grade={item.reloop_grade}
+              grade_status={item.grade_status}
+              grade_label={item.grade_label}
+              grade_confidence={item.grade_confidence}
+              grade_summary={item.grade_summary}
+            />
+          </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: spacing.md }}>
             {item.condition && (
