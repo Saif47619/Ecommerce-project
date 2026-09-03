@@ -12,8 +12,10 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { API_URL } from "../../lib/api";
+import { automaticallyGradeItem } from "../../lib/automatic-grading";
 import { colors, spacing, radius, type } from "../../constants/reloop-theme";
 import { generateSavedItemAiDescription } from "../../lib/ai-description";
+import { useAuth } from "../../context/auth-context";
 import ScreenBackButton from "../../components/screen-back-button";
 import ListingPhotoReviewCard from "../../components/listing-photo-review-card";
 import PriceGuidanceCard from "../../components/price-guidance-card";
@@ -33,6 +35,7 @@ import {
 
 export default function EditItemScreen() {
   const { id } = useLocalSearchParams();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -381,6 +384,11 @@ export default function EditItemScreen() {
   };
 
   const handleSave = async () => {
+    if (!user) {
+      Alert.alert("Error", "You must be logged in");
+      return;
+    }
+
     if (!title || !price) {
       Alert.alert("Error", "Title and price are required");
       return;
@@ -436,7 +444,26 @@ export default function EditItemScreen() {
         return;
       }
 
-      Alert.alert("Saved", "Your listing was updated");
+      const itemId = Number(Array.isArray(id) ? id[0] : id);
+      let gradingMessage =
+        "No photos are available, so this listing is Unverified.";
+
+      try {
+        const gradeResult = await automaticallyGradeItem(
+          itemId,
+          user.id,
+          getReviewImageUris().length > 0,
+        );
+        gradingMessage = gradeResult.message;
+      } catch {
+        gradingMessage =
+          "Your changes were saved, but automatic grading could not finish. The item remains Unverified until it is checked again.";
+      }
+
+      Alert.alert(
+        "Saved",
+        `Your listing was updated.\n\n${gradingMessage}`,
+      );
       router.replace(isSold ? "/manage-store" : "/");
     } catch (error) {
       Alert.alert("Error", "Could not connect to backend");
@@ -917,7 +944,7 @@ export default function EditItemScreen() {
         }}
       >
         <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-          {saving ? "Saving..." : "Save changes"}
+          {saving ? "Saving & grading..." : "Save changes"}
         </Text>
       </TouchableOpacity>
     </ScrollView>

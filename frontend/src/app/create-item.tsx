@@ -20,6 +20,7 @@ import {
   reviewListingDraft,
   type ListingDraftAnalysis,
 } from "../lib/ai-listing";
+import { automaticallyGradeItem } from "../lib/automatic-grading";
 import ScreenBackButton from "../components/screen-back-button";
 import ListingPhotoReviewCard from "../components/listing-photo-review-card";
 import PriceGuidanceCard from "../components/price-guidance-card";
@@ -252,6 +253,9 @@ export default function CreateItemScreen() {
         return;
       }
 
+      let uploadedPhotos = false;
+      let gradingMessage = "No photos were added, so this listing is Unverified.";
+
       if (imageUris.length > 0) {
         const formData = new FormData();
 
@@ -261,13 +265,36 @@ export default function CreateItemScreen() {
           formData.append("files", blob, `photo${i}.jpg`);
         }
 
-        await fetch(`${API_URL}/items/${item.id}/upload-images`, {
+        const uploadResponse = await fetch(`${API_URL}/items/${item.id}/upload-images`, {
           method: "POST",
           body: formData,
         });
+
+        uploadedPhotos = uploadResponse.ok;
+        if (!uploadedPhotos) {
+          gradingMessage =
+            "The listing is live as Unverified because its photos could not be uploaded.";
+        }
       }
 
-      Alert.alert("Listed", `"${title}" is now live on Reloop`);
+      if (uploadedPhotos) {
+        try {
+          const gradeResult = await automaticallyGradeItem(
+            item.id,
+            user.id,
+            true,
+          );
+          gradingMessage = gradeResult.message;
+        } catch {
+          gradingMessage =
+            "The listing is live as Unverified. Automatic grading can be retried from the item page.";
+        }
+      }
+
+      Alert.alert(
+        "Listed",
+        `"${title}" is now live on Reloop.\n\n${gradingMessage}`,
+      );
       router.replace("/");
     } catch (error) {
       Alert.alert("Error", "Could not connect to backend");
@@ -685,7 +712,7 @@ export default function CreateItemScreen() {
         }}
       >
         <Text style={{ color: colors.white, textAlign: "center", fontWeight: "700", fontSize: 16 }}>
-          {submitting ? "Listing..." : "Upload"}
+          {submitting ? "Publishing & grading..." : "Upload"}
         </Text>
       </TouchableOpacity>
     </ScrollView>
