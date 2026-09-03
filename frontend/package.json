@@ -39,7 +39,8 @@
     "test:ai-search": "tsx --test tests/ai-search-ranking.test.mjs",
     "test:ai-listing": "tsx --test tests/ai-listing.test.mjs",
     "test:ai-pricing": "tsx --test tests/price-guidance.test.mjs",
-    "test:grades": "tsx --test tests/product-grades.test.mjs"
+    "test:grades": "tsx --test tests/product-grades.test.mjs",
+    "test:auto-grading": "tsx --test tests/automatic-grading.test.mjs"
   },
   "private": true
 }

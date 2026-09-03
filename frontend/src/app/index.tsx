@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Image,
   Platform,
@@ -69,7 +69,6 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const { user, logout } = useAuth();
 
-  const [items, setItems] = useState<any[]>([]);
   const [allItems, setAllItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [aiQuery, setAiQuery] = useState("");
@@ -128,17 +127,13 @@ export default function HomeScreen() {
       });
   }, [selectedCategory, aiIntent]);
 
-  useEffect(() => {
+  const items = useMemo(() => {
     if (aiIntent) {
-      setItems(
-        rankItemsForAiSearch(allItems, activeAiQuery, aiIntent),
-      );
-      return;
+      return rankItemsForAiSearch(allItems, activeAiQuery, aiIntent);
     }
 
     if (!search.trim()) {
-      setItems(allItems);
-      return;
+      return allItems;
     }
 
     const fuse = new Fuse(allItems, {
@@ -153,8 +148,8 @@ export default function HomeScreen() {
       threshold: 0.35,
     });
 
-    setItems(fuse.search(search).map((result) => result.item));
-  }, [search, allItems, aiIntent, activeAiQuery]);
+    return fuse.search(search).map((result) => result.item);
+  }, [allItems, search, aiIntent, activeAiQuery]);
 
   useFocusEffect(
     useCallback(() => {
@@ -237,6 +232,10 @@ export default function HomeScreen() {
         user={user}
         menuOpen={menuOpen}
         onToggleMenu={() => setMenuOpen((current) => !current)}
+        onLogout={() => {
+          setMenuOpen(false);
+          logout();
+        }}
       />
 
       <ScrollView
@@ -339,54 +338,6 @@ export default function HomeScreen() {
           <MarketplacePromise />
         </View>
       </ScrollView>
-
-      {menuOpen && user ? (
-        <View
-          style={{
-            position: "absolute",
-            top: isNarrow ? 132 : 72,
-            right: horizontalPadding,
-            width: 210,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderRadius: radius.md,
-            paddingVertical: spacing.xs,
-            zIndex: 40,
-            ...cardShadow,
-          }}
-        >
-          <Text
-            style={{
-              color: colors.inkMuted,
-              fontSize: 11,
-              paddingHorizontal: spacing.md,
-              paddingVertical: 7,
-              textTransform: "uppercase",
-              letterSpacing: 0.7,
-            }}
-          >
-            Hi, {user.name}
-          </Text>
-          <MenuLink href="/profile" label="Profile" onPress={() => setMenuOpen(false)} />
-          <MenuLink href="/manage-store" label="My store" onPress={() => setMenuOpen(false)} />
-          <MenuLink href="/inbox" label="Inbox" onPress={() => setMenuOpen(false)} />
-          <TouchableOpacity
-            onPress={() => {
-              setMenuOpen(false);
-              logout();
-            }}
-            style={{
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.sm,
-            }}
-          >
-            <Text style={{ color: colors.inkMuted, fontSize: 14 }}>Log out</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -400,6 +351,7 @@ function MarketplaceHeader({
   user,
   menuOpen,
   onToggleMenu,
+  onLogout,
 }: {
   isNarrow: boolean;
   search: string;
@@ -409,6 +361,7 @@ function MarketplaceHeader({
   user: any;
   menuOpen: boolean;
   onToggleMenu: () => void;
+  onLogout: () => void;
 }) {
   return (
     <View
@@ -473,28 +426,38 @@ function MarketplaceHeader({
                 </TouchableOpacity>
               </Link>
 
-              <TouchableOpacity
-                accessibilityLabel="Open account menu"
-                onPress={onToggleMenu}
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 17,
-                  backgroundColor: menuOpen ? colors.wineDark : colors.wine,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
+              <View style={{ position: "relative", zIndex: 50 }}>
+                <TouchableOpacity
+                  accessibilityLabel="Open account menu"
+                  onPress={onToggleMenu}
                   style={{
-                    color: colors.white,
-                    fontWeight: "800",
-                    fontSize: 13,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    backgroundColor: menuOpen ? colors.wineDark : colors.wine,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {user.name?.charAt(0).toUpperCase() || "U"}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={{
+                      color: colors.white,
+                      fontWeight: "800",
+                      fontSize: 13,
+                    }}
+                  >
+                    {user.name?.charAt(0).toUpperCase() || "U"}
+                  </Text>
+                </TouchableOpacity>
+
+                {menuOpen ? (
+                  <AccountMenu
+                    user={user}
+                    onClose={onToggleMenu}
+                    onLogout={onLogout}
+                  />
+                ) : null}
+              </View>
 
               <Link href="/create-item" asChild>
                 <TouchableOpacity
@@ -588,6 +551,61 @@ function MarketplaceHeader({
           ))}
         </ScrollView>
       </View>
+    </View>
+  );
+}
+
+function AccountMenu({
+  user,
+  onClose,
+  onLogout,
+}: {
+  user: any;
+  onClose: () => void;
+  onLogout: () => void;
+}) {
+  return (
+    <View
+      style={{
+        position: "absolute",
+        top: 42,
+        right: 0,
+        width: 210,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.md,
+        paddingVertical: spacing.xs,
+        zIndex: 60,
+        ...cardShadow,
+      }}
+    >
+      <Text
+        style={{
+          color: colors.inkMuted,
+          fontSize: 11,
+          paddingHorizontal: spacing.md,
+          paddingVertical: 7,
+          textTransform: "uppercase",
+          letterSpacing: 0.7,
+        }}
+      >
+        Hi, {user.name}
+      </Text>
+      <MenuLink href="/profile" label="Profile" onPress={onClose} />
+      <MenuLink href="/manage-store" label="My store" onPress={onClose} />
+      <MenuLink href="/inbox" label="Inbox" onPress={onClose} />
+      <TouchableOpacity
+        onPress={onLogout}
+        style={{
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+        }}
+      >
+        <Text style={{ color: colors.inkMuted, fontSize: 14 }}>Log out</Text>
+      </TouchableOpacity>
     </View>
   );
 }
